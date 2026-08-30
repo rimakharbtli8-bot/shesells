@@ -3,19 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Wraps the browser's speechSynthesis API and picks the most natural
- * German voice available. This is a stand-in for a real TTS provider —
- * see app/api/text-to-speech/route.ts, which takes over automatically
- * once TEXT_TO_SPEECH_API_KEY is configured. Browser voices are decent
- * but noticeably synthetic; a real provider sounds far more human.
+ * Plays the customer's lines during a call. Always tries the server's real
+ * TTS route first (ElevenLabs, once TEXT_TO_SPEECH_API_KEY is configured —
+ * see app/api/text-to-speech/route.ts) and transparently falls back to the
+ * browser's built-in speechSynthesis (noticeably synthetic, but always
+ * available) when no provider is configured or the request fails.
  */
 export function useCallTts() {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  const isSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+  const browserTtsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
   useEffect(() => {
-    if (!isSupported) return;
+    if (!browserTtsSupported) return;
 
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
@@ -30,11 +32,25 @@ export function useCallTts() {
     pickVoice();
     window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", pickVoice);
-  }, [isSupported]);
+  }, [browserTtsSupported]);
 
-  const speak = useCallback(
+  const cleanupAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onplay = null;
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current = null;
+    }
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
+
+  const speakWithBrowser = useCallback(
     (text: string, onEnd?: () => void) => {
-      if (!isSupported) {
+      if (!browserTtsSupported) {
         onEnd?.();
         return;
       }
@@ -42,8 +58,6 @@ export function useCallTts() {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "de-DE";
       if (voiceRef.current) utterance.voice = voiceRef.current;
-      utterance.rate = 1;
-      utterance.pitch = 1;
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => {
         setIsSpeaking(false);
@@ -55,16 +69,51 @@ export function useCallTts() {
       };
       window.speechSynthesis.speak(utterance);
     },
-    [isSupported],
+    [browserTtsSupported],
+  );
+
+  const speak = useCallback(
+    async (text: string, onEnd?: () => void) => {
+      cleanupAudio();
+      try {
+        const res = await fetch("/api/text-to-speech", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error("tts-unavailable");
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        objectUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          cleanupAudio();
+          onEnd?.();
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          cleanupAudio();
+          speakWithBrowser(text, onEnd);
+        };
+        await audio.play();
+      } catch {
+        speakWithBrowser(text, onEnd);
+      }
+    },
+    [cleanupAudio, speakWithBrowser],
   );
 
   const cancel = useCallback(() => {
-    if (!isSupported) return;
-    window.speechSynthesis.cancel();
+    cleanupAudio();
+    if (browserTtsSupported) window.speechSynthesis.cancel();
     setIsSpeaking(false);
-  }, [isSupported]);
+  }, [cleanupAudio, browserTtsSupported]);
 
   useEffect(() => cancel, [cancel]);
 
-  return { isSupported, isSpeaking, speak, cancel };
+  return { isSpeaking, speak, cancel };
 }
