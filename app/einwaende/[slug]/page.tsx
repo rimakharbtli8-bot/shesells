@@ -14,6 +14,7 @@ export default function ObjectionDetailPage({ params }: { params: { slug: string
   if (!objection) notFound();
 
   const category = OBJECTION_CATEGORIES.find((c) => c.id === objection.category);
+  const CategoryIcon = category?.icon;
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,8 +24,9 @@ export default function ObjectionDetailPage({ params }: { params: { slug: string
       </Link>
 
       <div>
-        <span className="text-xs font-medium uppercase tracking-wide text-accent">
-          {category?.icon} {category?.label}
+        <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-accent">
+          {CategoryIcon && <CategoryIcon size={14} />}
+          {category?.label}
         </span>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">„{objection.text}“</h1>
       </div>

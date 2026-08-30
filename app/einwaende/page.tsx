@@ -15,10 +15,11 @@ export default function ObjectionLibraryPage() {
 
       {OBJECTION_CATEGORIES.map((category) => {
         const items = OBJECTIONS.filter((o) => o.category === category.id);
+        const Icon = category.icon;
         return (
           <div key={category.id}>
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-ink">
-              <span>{category.icon}</span>
+              <Icon size={18} className="text-accent" />
               {category.label}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">

@@ -1,3 +1,5 @@
+import { Brain, Flame, Heart, MessageCircle, Puzzle, Target, Timer, type LucideIcon } from "lucide-react";
+
 /**
  * Central configuration for CLOSER.
  *
@@ -29,14 +31,14 @@ export const FEATURES = {
   useRealTextToSpeech: Boolean(process.env.TEXT_TO_SPEECH_API_KEY),
 };
 
-export const SCORE_DIMENSIONS: { key: ScoreDimensionKey; label: string; icon: string }[] = [
-  { key: "understanding", label: "Einwand verstanden", icon: "🎯" },
-  { key: "questioning", label: "Fragetechnik", icon: "🧠" },
-  { key: "communication", label: "Kommunikation", icon: "💬" },
-  { key: "empathy", label: "Empathie", icon: "❤️" },
-  { key: "confidence", label: "Sicherheit", icon: "🔥" },
-  { key: "structure", label: "Struktur", icon: "🧩" },
-  { key: "concision", label: "Prägnanz", icon: "⏱️" },
+export const SCORE_DIMENSIONS: { key: ScoreDimensionKey; label: string; icon: LucideIcon }[] = [
+  { key: "understanding", label: "Einwand verstanden", icon: Target },
+  { key: "questioning", label: "Fragetechnik", icon: Brain },
+  { key: "communication", label: "Kommunikation", icon: MessageCircle },
+  { key: "empathy", label: "Empathie", icon: Heart },
+  { key: "confidence", label: "Sicherheit", icon: Flame },
+  { key: "structure", label: "Struktur", icon: Puzzle },
+  { key: "concision", label: "Prägnanz", icon: Timer },
 ];
 
 export type ScoreDimensionKey =

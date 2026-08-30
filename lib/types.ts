@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import type { ScoreDimensionKey } from "./config";
 
 export type Difficulty = "anfaenger" | "fortgeschritten" | "schwer" | "experte";
@@ -69,7 +70,7 @@ export interface Level {
 export interface Badge {
   id: string;
   name: string;
-  icon: string;
+  icon: LucideIcon;
   description: string;
 }
 

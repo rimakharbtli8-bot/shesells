@@ -42,24 +42,29 @@ function TrainierenContent() {
 
       {step === 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {TRAINING_TYPES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setType(t.id);
-                setStep(t.id === "einwandtraining" ? 1 : 2);
-              }}
-              className="text-left"
-            >
-              <Card className="flex items-start gap-3 transition-shadow hover:shadow-card">
-                <span className="text-2xl">{t.icon}</span>
-                <div>
-                  <div className="text-sm font-semibold text-ink">{t.title}</div>
-                  <div className="mt-0.5 text-xs text-ink-muted">{t.description}</div>
-                </div>
-              </Card>
-            </button>
-          ))}
+          {TRAINING_TYPES.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setType(t.id);
+                  setStep(t.id === "einwandtraining" ? 1 : 2);
+                }}
+                className="text-left"
+              >
+                <Card className="flex items-start gap-3 transition-shadow hover:shadow-card">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sand text-ink">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-ink">{t.title}</div>
+                    <div className="mt-0.5 text-xs text-ink-muted">{t.description}</div>
+                  </div>
+                </Card>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -70,7 +75,7 @@ function TrainierenContent() {
           {OBJECTION_CATEGORIES.map((category) => (
             <div key={category.id}>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
-                <span>{category.icon}</span> {category.label}
+                <category.icon size={15} className="text-accent" /> {category.label}
               </h3>
               <div className="grid gap-2 sm:grid-cols-2">
                 {OBJECTIONS.filter((o) => o.category === category.id).map((o) => (
@@ -126,7 +131,7 @@ function TrainierenContent() {
                     difficulty === d.id && "ring-2 ring-ink",
                   )}
                 >
-                  <span className="text-2xl">{d.icon}</span>
+                  <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", d.dotClassName)} />
                   <div>
                     <div className="text-sm font-semibold text-ink">{d.label}</div>
                     <div className="mt-0.5 text-xs text-ink-muted">{d.description}</div>

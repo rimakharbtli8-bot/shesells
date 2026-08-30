@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users } from "lucide-react";
+import { Flame, Users } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store/useAppStore";
@@ -56,7 +56,10 @@ export function Sidebar() {
       <div className="rounded-xl bg-sand px-3 py-3">
         <div className="flex items-center justify-between text-xs text-ink-muted">
           <span>Level {current.level}</span>
-          <span>🔥 {streak}</span>
+          <span className="flex items-center gap-1">
+            <Flame size={12} className="text-warn" />
+            {streak}
+          </span>
         </div>
         <div className="mt-0.5 text-sm font-semibold text-ink">{current.name}</div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, ArrowRight } from "lucide-react";
+import { Flame, ArrowRight, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -34,7 +34,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Willkommen zurück, {firstName} 👋
+          Willkommen zurück, {firstName}
         </h1>
         <p className="mt-1 text-sm text-ink-muted">Heute besser als gestern.</p>
       </div>
@@ -66,7 +66,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatTile label="Trainings diese Woche" value={String(sessionsThisWeek.length)} />
         <StatTile label="Erfolgsquote" value={`${successRate}%`} />
-        <StatTile label="Streak" value={`🔥 ${streak}`} hint="Tage in Folge" />
+        <StatTile
+          label="Streak"
+          value={String(streak)}
+          hint="Tage in Folge"
+          icon={<Flame size={16} className="text-warn" />}
+        />
       </div>
 
       <Card className="flex flex-col gap-4 !border-ink !bg-ink !text-white sm:flex-row sm:items-center sm:justify-between">
@@ -90,30 +95,36 @@ export default function DashboardPage() {
             Alle ansehen
           </Link>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {sessions.slice(0, 6).map((session) => (
-            <Card key={session.id} className="flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-sm font-medium text-ink">
-                  {session.objectionText ?? "Freies Training"}
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold",
-                    session.score >= 85
-                      ? "bg-accent-soft text-accent-dark"
-                      : session.score >= 70
-                        ? "bg-sand text-ink-soft"
-                        : "bg-danger/10 text-danger",
-                  )}
-                >
-                  {session.score}/100
-                </span>
-              </div>
-              <span className="text-xs text-ink-muted">{formatRelativeTime(session.date)}</span>
-            </Card>
-          ))}
-        </div>
+        {sessions.length === 0 ? (
+          <Card className="text-sm text-ink-muted">
+            Noch keine Trainings absolviert. Starte dein erstes Training, um hier deinen Verlauf zu sehen.
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {sessions.slice(0, 6).map((session) => (
+              <Card key={session.id} className="flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-sm font-medium text-ink">
+                    {session.objectionText ?? "Freies Training"}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold",
+                      session.score >= 85
+                        ? "bg-accent-soft text-accent-dark"
+                        : session.score >= 70
+                          ? "bg-sand text-ink-soft"
+                          : "bg-danger/10 text-danger",
+                    )}
+                  >
+                    {session.score}/100
+                  </span>
+                </div>
+                <span className="text-xs text-ink-muted">{formatRelativeTime(session.date)}</span>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
@@ -130,10 +141,13 @@ export default function DashboardPage() {
 
       <Link href="/coach">
         <Card className="flex items-center justify-between gap-3 transition-shadow hover:shadow-card">
-          <div>
-            <div className="text-sm font-semibold text-ink">✨ Mein KI-Coach</div>
-            <div className="mt-0.5 text-xs text-ink-muted">
-              Frag nach, warum eine Antwort nicht funktioniert hat.
+          <div className="flex items-center gap-3">
+            <Sparkles size={18} className="text-accent" />
+            <div>
+              <div className="text-sm font-semibold text-ink">Mein KI-Coach</div>
+              <div className="mt-0.5 text-xs text-ink-muted">
+                Frag nach, warum eine Antwort nicht funktioniert hat.
+              </div>
             </div>
           </div>
           <ArrowRight size={18} className="shrink-0 text-ink-muted" />

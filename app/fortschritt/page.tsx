@@ -13,11 +13,13 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { Flame } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { OBJECTIONS, OBJECTION_CATEGORIES } from "@/lib/data/objections";
+import { BADGES } from "@/lib/data/badges";
 import { SCORE_DIMENSIONS } from "@/lib/config";
 import { formatDuration, formatRelativeTime, cn } from "@/lib/utils";
 import type { ScoreDimensionKey } from "@/lib/config";
@@ -25,6 +27,7 @@ import type { ScoreDimensionKey } from "@/lib/config";
 export default function FortschrittPage() {
   const sessions = useAppStore((s) => s.sessions);
   const streak = useAppStore((s) => s.streak);
+  const earnedBadgeIds = useAppStore((s) => s.earnedBadgeIds);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -85,7 +88,7 @@ export default function FortschrittPage() {
         <StatTile label="Bester Score" value={String(stats.best)} />
         <StatTile label="Erfolgsquote" value={`${stats.successRate}%`} />
         <StatTile label="Trainingszeit" value={formatDuration(stats.time)} />
-        <StatTile label="Streak" value={`🔥 ${streak}`} />
+        <StatTile label="Streak" value={String(streak)} icon={<Flame size={16} className="text-warn" />} />
       </div>
 
       {weakest && strongest && (
@@ -94,15 +97,17 @@ export default function FortschrittPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <span className="text-xs font-medium uppercase tracking-wide text-danger">Größte Schwäche</span>
-              <p className="mt-1 text-sm text-ink">
-                {weakest.icon} {weakest.label} – {weakest.value}%
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-ink">
+                <weakest.icon size={14} />
+                {weakest.label} – {weakest.value}%
               </p>
               <ProgressBar percent={weakest.value} barClassName="bg-danger" className="mt-2" />
             </div>
             <div>
               <span className="text-xs font-medium uppercase tracking-wide text-accent-dark">Stärke</span>
-              <p className="mt-1 text-sm text-ink">
-                {strongest.icon} {strongest.label} – {strongest.value}%
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-ink">
+                <strongest.icon size={14} />
+                {strongest.label} – {strongest.value}%
               </p>
               <ProgressBar percent={strongest.value} className="mt-2" />
             </div>
@@ -115,6 +120,27 @@ export default function FortschrittPage() {
           </Link>
         </Card>
       )}
+
+      <Card>
+        <h2 className="mb-4 text-sm font-semibold text-ink">Badges</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {BADGES.map((badge) => {
+            const earned = earnedBadgeIds.includes(badge.id);
+            return (
+              <div
+                key={badge.id}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center",
+                  earned ? "border-accent/30 bg-accent-soft" : "border-line bg-canvas opacity-50",
+                )}
+              >
+                <badge.icon size={20} className={earned ? "text-accent-dark" : "text-ink-muted"} />
+                <span className="text-xs font-medium text-ink">{badge.name}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -204,8 +230,11 @@ function DimensionRow({ breakdown }: { breakdown: Record<ScoreDimensionKey, numb
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
       {SCORE_DIMENSIONS.map((dim) => (
-        <div key={dim.key} className="text-xs text-ink-muted">
-          {dim.icon} {dim.label}
+        <div key={dim.key} className="flex flex-col gap-0.5 text-xs text-ink-muted">
+          <span className="flex items-center gap-1">
+            <dim.icon size={12} />
+            {dim.label}
+          </span>
           <div className="text-sm font-semibold text-ink">{breakdown[dim.key]}</div>
         </div>
       ))}

@@ -8,11 +8,22 @@ interface UseVoiceRecorderResult {
   start: () => void;
   stop: () => void;
   interimText: string;
+  error: string | null;
 }
+
+const ERROR_MESSAGES: Record<string, string> = {
+  "not-allowed": "Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.",
+  "permission-denied": "Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.",
+  "no-speech": "Es wurde nichts gehört. Versuch es nochmal oder tippe deine Antwort.",
+  "audio-capture": "Kein Mikrofon gefunden. Prüfe deine Geräteeinstellungen.",
+  network: "Netzwerkfehler bei der Spracherkennung. Bitte versuch es erneut.",
+  "service-not-allowed": "Spracherkennung ist in diesem Browser/Kontext blockiert.",
+};
 
 export function useVoiceRecorder(onResult: (finalText: string, seconds: number) => void): UseVoiceRecorderResult {
   const [isRecording, setIsRecording] = useState(false);
   const [interimText, setInterimText] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const startTimeRef = useRef<number>(0);
   const finalTextRef = useRef<string>("");
@@ -27,7 +38,16 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
       (window as WindowWithSpeech).SpeechRecognition || (window as WindowWithSpeech).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
 
-    const recognition: SpeechRecognitionLike = new SpeechRecognitionCtor();
+    setError(null);
+
+    let recognition: SpeechRecognitionLike;
+    try {
+      recognition = new SpeechRecognitionCtor();
+    } catch {
+      setError("Spracherkennung konnte nicht gestartet werden.");
+      return;
+    }
+
     recognition.lang = "de-DE";
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -48,8 +68,12 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
       setInterimText(interim);
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
+      const code = event?.error;
       setIsRecording(false);
+      if (code && code !== "aborted") {
+        setError(ERROR_MESSAGES[code] ?? `Fehler bei der Spracherkennung (${code}).`);
+      }
     };
 
     recognition.onend = () => {
@@ -57,8 +81,13 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
+    try {
+      recognition.start();
+      setIsRecording(true);
+    } catch {
+      setError("Spracherkennung konnte nicht gestartet werden. Bitte versuch es erneut.");
+      setIsRecording(false);
+    }
   }, [isSupported]);
 
   const stop = useCallback(() => {
@@ -70,7 +99,7 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
     if (text) onResult(text, seconds);
   }, [onResult]);
 
-  return { isSupported, isRecording, start, stop, interimText };
+  return { isSupported, isRecording, start, stop, interimText, error };
 }
 
 interface SpeechRecognitionResultLike {
@@ -83,6 +112,10 @@ interface SpeechRecognitionEventLike {
   results: SpeechRecognitionResultLike[];
 }
 
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
 interface SpeechRecognitionLike {
   lang: string;
   continuous: boolean;
@@ -90,7 +123,7 @@ interface SpeechRecognitionLike {
   start: () => void;
   stop: () => void;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
 }
 

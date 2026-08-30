@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 import type { ExperienceLevel, TrainingGoal, TrainingSession, UserProfile } from "@/lib/types";
 import { LEADERBOARD_ENABLED_DEFAULT, XP_REWARDS } from "@/lib/config";
 import { BADGES } from "@/lib/data/badges";
-import { SEED_SESSIONS } from "@/lib/data/mockSeed";
 import { uid } from "@/lib/utils";
 
 interface AppState {
@@ -42,8 +41,6 @@ function computeStreak(lastISODate: string | null, currentStreak: number): numbe
   return 1;
 }
 
-const initialSessions = SEED_SESSIONS;
-
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -54,11 +51,11 @@ export const useAppStore = create<AppState>()(
         goals: [],
         onboardingComplete: false,
       },
-      xp: 3480,
-      streak: 6,
-      lastTrainingISODate: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-      sessions: initialSessions,
-      earnedBadgeIds: ["streak-7", "first-90"],
+      xp: 0,
+      streak: 0,
+      lastTrainingISODate: null,
+      sessions: [],
+      earnedBadgeIds: [],
       leaderboardEnabled: LEADERBOARD_ENABLED_DEFAULT,
       notificationsEnabled: true,
 

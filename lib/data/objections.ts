@@ -1,11 +1,12 @@
+import { Euro, Clock, Handshake, Puzzle, Lock, type LucideIcon } from "lucide-react";
 import type { Objection, ObjectionCategoryId } from "@/lib/types";
 
-export const OBJECTION_CATEGORIES: { id: ObjectionCategoryId; label: string; icon: string }[] = [
-  { id: "preis", label: "Preis", icon: "💰" },
-  { id: "timing", label: "Timing", icon: "⏳" },
-  { id: "vertrauen", label: "Vertrauen", icon: "🤝" },
-  { id: "produkt", label: "Produkt", icon: "🧩" },
-  { id: "commitment", label: "Commitment", icon: "🔒" },
+export const OBJECTION_CATEGORIES: { id: ObjectionCategoryId; label: string; icon: LucideIcon }[] = [
+  { id: "preis", label: "Preis", icon: Euro },
+  { id: "timing", label: "Timing", icon: Clock },
+  { id: "vertrauen", label: "Vertrauen", icon: Handshake },
+  { id: "produkt", label: "Produkt", icon: Puzzle },
+  { id: "commitment", label: "Commitment", icon: Lock },
 ];
 
 export const OBJECTIONS: Objection[] = [

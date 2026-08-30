@@ -1,11 +1,12 @@
 "use client";
 
+import { Medal } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { MOCK_LEADERBOARD } from "@/lib/data/mockSeed";
 import { cn } from "@/lib/utils";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDAL_COLORS = ["text-[#C9A227]", "text-[#9AA0A6]", "text-[#B0785C]"];
 
 export default function RanglistePage() {
   const xp = useAppStore((s) => s.xp);
@@ -44,8 +45,8 @@ export default function RanglistePage() {
               )}
             >
               <div className="flex items-center gap-3">
-                <span className="w-6 text-center text-sm font-semibold text-ink-muted">
-                  {MEDALS[i] ?? i + 1}
+                <span className="flex w-6 items-center justify-center text-sm font-semibold text-ink-muted">
+                  {i < 3 ? <Medal size={18} className={MEDAL_COLORS[i]} /> : i + 1}
                 </span>
                 <span className={cn("text-sm font-medium text-ink", entry.isCurrentUser && "text-accent-dark")}>
                   {entry.name}

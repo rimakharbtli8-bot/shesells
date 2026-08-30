@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Mic, Square, Send, Volume2, X, Pause as PauseIcon, Play } from "lucide-react";
+import { Mic, Square, Send, Volume2, X, Pause as PauseIcon, Play, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -307,9 +307,10 @@ function SimulationContent() {
           </div>
           <p className="text-xs text-ink-muted">
             {recorder.isSupported
-              ? "🎙️ Antwort aufnehmen oder tippen — Enter zum Senden."
+              ? "Antwort aufnehmen oder tippen — Enter zum Senden."
               : "Spracherkennung wird von diesem Browser nicht unterstützt. Bitte tippen."}
           </p>
+          {recorder.error && <p className="text-xs text-danger">{recorder.error}</p>}
         </div>
       )}
     </div>
@@ -329,8 +330,13 @@ function MessageBubble({ message, onSpeak }: { message: ChatMessage; onSpeak: (t
         <p>{message.text}</p>
         <div className="mt-1 flex items-center gap-2">
           {message.inputMode === "voice" && (
-            <span className={cn("text-[10px] uppercase tracking-wide", isUser ? "text-white/60" : "text-ink-muted")}>
-              🎙️ Sprachantwort
+            <span
+              className={cn(
+                "flex items-center gap-1 text-[10px] uppercase tracking-wide",
+                isUser ? "text-white/60" : "text-ink-muted",
+              )}
+            >
+              <Mic size={10} /> Sprachantwort
             </span>
           )}
           {!isUser && (
@@ -365,8 +371,10 @@ function ResultScreen({
   return (
     <div className="flex flex-col gap-6 pb-10">
       {levelUp && (
-        <Card className="animate-level-pop !border-accent !bg-accent text-center !text-white">
-          <div className="text-3xl">🎉</div>
+        <Card className="animate-level-pop flex flex-col items-center gap-2 !border-accent !bg-accent text-center !text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15">
+            <TrendingUp size={22} />
+          </div>
           <div className="mt-1 text-lg font-semibold">Level Up!</div>
           <div className="text-sm text-white/90">
             Du bist jetzt Level {levelUp.level} – {levelUp.name}
@@ -389,8 +397,9 @@ function ResultScreen({
           {SCORE_DIMENSIONS.map((dim) => (
             <div key={dim.key}>
               <div className="mb-1 flex justify-between text-xs text-ink-soft">
-                <span>
-                  {dim.icon} {dim.label}
+                <span className="flex items-center gap-1.5">
+                  <dim.icon size={13} />
+                  {dim.label}
                 </span>
                 <span>{breakdown[dim.key]}</span>
               </div>
