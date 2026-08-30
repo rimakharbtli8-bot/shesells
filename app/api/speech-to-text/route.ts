@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { FEATURES } from "@/lib/config";
 
 // SPEECH_TO_TEXT_API_KEY stays server-only. The client currently transcribes
-// voice answers locally via the browser's Web Speech API (see
-// lib/hooks/useVoiceRecorder.ts), so this route is not called yet — it's
-// the drop-in target once a cloud STT provider (e.g. for higher accuracy or
+// call audio locally via the browser's Web Speech API (see
+// lib/hooks/useCallVoice.ts), so this route is not called yet — it's the
+// drop-in target once a cloud STT provider (e.g. for higher accuracy or
 // unsupported browsers) is connected.
 const SPEECH_TO_TEXT_API_KEY = process.env.SPEECH_TO_TEXT_API_KEY;
 

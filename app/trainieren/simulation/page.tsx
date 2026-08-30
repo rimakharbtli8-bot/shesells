@@ -3,20 +3,22 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Mic, Square, Send, Volume2, X, Pause as PauseIcon, Play, TrendingUp } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { useVoiceRecorder } from "@/lib/hooks/useVoiceRecorder";
+import { useCallVoice } from "@/lib/hooks/useCallVoice";
+import { useCallTts } from "@/lib/hooks/useCallTts";
 import { getObjectionBySlug } from "@/lib/data/objections";
+import { DIFFICULTIES } from "@/lib/data/trainingTypes";
 import { getDifficultyTone, getStartingResistance } from "@/lib/ai/mockCustomer";
 import { getLevelForXp } from "@/lib/data/levels";
 import { SCORE_DIMENSIONS } from "@/lib/config";
 import type { ChatMessage, Difficulty, ScoreBreakdown, SessionFeedback, TrainingTypeId } from "@/lib/types";
 
-type Phase = "loading" | "chat" | "waiting" | "result";
+type Phase = "incoming" | "connecting" | "ai-speaking" | "listening" | "thinking" | "result";
 
 function SimulationContent() {
   const searchParams = useSearchParams();
@@ -24,17 +26,19 @@ function SimulationContent() {
   const difficulty = (searchParams.get("difficulty") as Difficulty) || "fortgeschritten";
   const objectionSlug = searchParams.get("objection") || undefined;
   const objection = objectionSlug ? getObjectionBySlug(objectionSlug) : undefined;
+  const difficultyLabel = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? difficulty;
 
   const xp = useAppStore((s) => s.xp);
   const addSession = useAppStore((s) => s.addSession);
 
-  const [phase, setPhase] = useState<Phase>("loading");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
+  const [phase, setPhase] = useState<Phase>("incoming");
+  const [caption, setCaption] = useState("");
   const [resistance, setResistance] = useState(getStartingResistance(difficulty));
   const [turn, setTurn] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [levelUp, setLevelUp] = useState<{ level: number; name: string } | null>(null);
+  const [typedFallback, setTypedFallback] = useState("");
 
   const [resultScore, setResultScore] = useState(0);
   const [resultBreakdown, setResultBreakdown] = useState<ScoreBreakdown | null>(null);
@@ -42,39 +46,59 @@ function SimulationContent() {
   const [xpEarnedDisplay, setXpEarnedDisplay] = useState(0);
 
   const breakdownsRef = useRef<ScoreBreakdown[]>([]);
-  const startTimeRef = useRef(Date.now());
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const callStartRef = useRef(0);
   const transcriptRef = useRef<ChatMessage[]>([]);
+  const isMutedRef = useRef(false);
+  isMutedRef.current = isMuted;
+
+  const tts = useCallTts();
+  const callVoice = useCallVoice({
+    enabled: phase === "listening" && !isMuted,
+    onUtterance: (text, seconds) => {
+      if (isMutedRef.current) return;
+      handleUtterance(text, seconds);
+    },
+  });
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    if (phase === "incoming" || phase === "result") return;
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   useEffect(() => {
-    startOpening();
+    return () => {
+      tts.cancel();
+      callVoice.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function startOpening() {
-    setPhase("loading");
+  async function answerCall() {
+    callStartRef.current = Date.now();
+    setPhase("connecting");
     const res = await fetch("/api/customer-response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "opening", trainingType, difficulty, objectionSlug }),
     });
     const data = await res.json();
-    const opening: ChatMessage = {
-      id: `m_${Date.now()}`,
-      role: "customer",
-      text: data.text,
-      timestamp: Date.now(),
-    };
-    setMessages([opening]);
+    const opening: ChatMessage = { id: `m_${Date.now()}`, role: "customer", text: data.text, timestamp: Date.now() };
     transcriptRef.current = [opening];
-    setPhase("chat");
+    speakThenListen(data.text);
   }
 
-  async function sendReply(text: string, inputMode: "text" | "voice", spokenSeconds?: number) {
+  function speakThenListen(text: string) {
+    setCaption(text);
+    setPhase("ai-speaking");
+    tts.speak(text, () => {
+      setPhase("listening");
+      setCaption("");
+      if (!isMutedRef.current) callVoice.start();
+    });
+  }
+
+  async function handleUtterance(text: string, seconds: number) {
     const trimmed = text.trim();
     if (!trimmed) return;
 
@@ -83,22 +107,17 @@ function SimulationContent() {
       role: "user",
       text: trimmed,
       timestamp: Date.now(),
-      inputMode,
+      inputMode: "voice",
     };
-    setMessages((m) => [...m, userMsg]);
-    transcriptRef.current = [...transcriptRef.current, userMsg];
-    setInputText("");
-    setPhase("waiting");
+    const priorTranscript = transcriptRef.current;
+    transcriptRef.current = [...priorTranscript, userMsg];
+    setPhase("thinking");
+    setCaption("");
 
     const analyzeRes = await fetch("/api/analyze-response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: trimmed,
-        difficulty,
-        spokenSeconds,
-        objectionText: objection?.text,
-      }),
+      body: JSON.stringify({ text: trimmed, difficulty, spokenSeconds: seconds, objectionText: objection?.text }),
     });
     const analyzeData = await analyzeRes.json();
     breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
@@ -114,6 +133,7 @@ function SimulationContent() {
         userReply: trimmed,
         resistance,
         turn,
+        transcript: priorTranscript,
       }),
     });
     const customerData = await customerRes.json();
@@ -124,24 +144,30 @@ function SimulationContent() {
       text: customerData.text,
       timestamp: Date.now(),
     };
-    setMessages((m) => [...m, customerMsg]);
     transcriptRef.current = [...transcriptRef.current, customerMsg];
     setResistance(customerData.resistance);
     setTurn((t) => t + 1);
 
     if (customerData.isClosing) {
-      finalizeSession(analyzeData.feedback);
+      setCaption(customerData.text);
+      setPhase("ai-speaking");
+      tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback));
     } else {
-      setPhase("chat");
+      speakThenListen(customerData.text);
     }
   }
 
   function finalizeSession(lastFeedback: SessionFeedback) {
+    callVoice.stop();
     const breakdowns = breakdownsRef.current;
+
+    if (breakdowns.length === 0) {
+      window.location.href = "/trainieren";
+      return;
+    }
+
     const avgBreakdown = SCORE_DIMENSIONS.reduce((acc, dim) => {
-      const avg = Math.round(
-        breakdowns.reduce((sum, b) => sum + b[dim.key], 0) / breakdowns.length,
-      );
+      const avg = Math.round(breakdowns.reduce((sum, b) => sum + b[dim.key], 0) / breakdowns.length);
       return { ...acc, [dim.key]: avg };
     }, {} as ScoreBreakdown);
     const score = Math.round(
@@ -159,7 +185,7 @@ function SimulationContent() {
       score,
       breakdown: avgBreakdown,
       feedback: lastFeedback,
-      durationSeconds: Math.round((Date.now() - startTimeRef.current) / 1000),
+      durationSeconds: Math.round((Date.now() - callStartRef.current) / 1000),
     });
 
     const xpAfter = getLevelForXp(xp + session.xpEarned);
@@ -174,15 +200,38 @@ function SimulationContent() {
     setPhase("result");
   }
 
-  const recorder = useVoiceRecorder((finalText, seconds) => {
-    sendReply(finalText, "voice", seconds);
-  });
+  function hangUp() {
+    tts.cancel();
+    callVoice.stop();
+    if (breakdownsRef.current.length === 0) {
+      window.location.href = "/trainieren";
+      return;
+    }
+    finalizeSession({
+      good: ["Du hast das Gespräch aktiv geführt."],
+      improve: ["Versuch beim nächsten Mal, das Gespräch bis zum natürlichen Ende zu führen — dann bekommst du vollständigeres Feedback."],
+      focus: "Gesprächsdauer",
+      recommendedExercise: "Führe das nächste Training bis zum Abschluss durch.",
+    });
+  }
 
-  function speak(text: string) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "de-DE";
-    window.speechSynthesis.speak(utterance);
+  function toggleMute() {
+    setIsMuted((m) => {
+      const next = !m;
+      if (next) {
+        callVoice.stop();
+      } else if (phase === "listening") {
+        callVoice.start();
+      }
+      return next;
+    });
+  }
+
+  function submitTypedFallback() {
+    const text = typedFallback.trim();
+    if (!text) return;
+    setTypedFallback("");
+    handleUtterance(text, Math.max(2, Math.round(text.split(/\s+/).length / 2.5)));
   }
 
   function restart() {
@@ -206,148 +255,118 @@ function SimulationContent() {
     );
   }
 
+  const minutes = String(Math.floor(elapsedSeconds / 60)).padStart(2, "0");
+  const seconds = String(elapsedSeconds % 60).padStart(2, "0");
+
+  const statusLabel: Record<Phase, string> = {
+    incoming: "Eingehender Anruf",
+    connecting: "Verbindung wird aufgebaut …",
+    "ai-speaking": "Kunde spricht …",
+    listening: isMuted ? "Stummgeschaltet" : "Du bist dran …",
+    thinking: "Kunde überlegt …",
+    result: "",
+  };
+
+  const needsTypedFallback = phase === "listening" && !callVoice.isSupported;
+
   return (
-    <div className="flex h-[calc(100vh-6.5rem)] flex-col lg:h-[calc(100vh-5rem)]">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-            {objection ? "Einwandtraining" : "Freies Training"}
-          </p>
-          <h1 className="text-lg font-semibold text-ink">
-            Du sprichst jetzt mit einem {getDifficultyTone(difficulty)} Kunden.
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPaused((p) => !p)}
-            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink-soft hover:bg-sand/60"
-          >
-            {paused ? <Play size={14} /> : <PauseIcon size={14} />}
-            {paused ? "Fortsetzen" : "Pause"}
-          </button>
-          <Link
-            href="/trainieren"
-            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink-soft hover:bg-sand/60"
-          >
-            <X size={14} />
-            Beenden
-          </Link>
-        </div>
+    <div className="flex h-[calc(100vh-6.5rem)] flex-col items-center justify-between py-6 lg:h-[calc(100vh-5rem)]">
+      <div className="flex flex-col items-center gap-1 text-center">
+        <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
+          {objection ? "Einwandtraining" : "Freies Training"} · {difficultyLabel}
+        </p>
+        <h1 className="text-base font-semibold text-ink">Kunde am Telefon</h1>
+        <p className="text-xs text-ink-muted">{getDifficultyTone(difficulty)}</p>
+        {phase !== "incoming" && (
+          <span className="mt-1 text-sm tabular-nums text-ink-muted">
+            {minutes}:{seconds}
+          </span>
+        )}
       </div>
 
-      <div className="mb-3">
-        <div className="mb-1 flex justify-between text-xs text-ink-muted">
-          <span>Widerstand des Kunden</span>
-          <span>{resistance}%</span>
-        </div>
-        <ProgressBar percent={resistance} barClassName={cn(resistance > 60 ? "bg-danger" : resistance > 35 ? "bg-warn" : "bg-accent")} />
-      </div>
-
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-line bg-surface p-4 scrollbar-none">
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} onSpeak={speak} />
-        ))}
-        {phase === "waiting" && (
-          <div className="flex items-center gap-1.5 rounded-2xl bg-sand px-4 py-2.5 text-sm text-ink-muted w-fit">
-            <span className="animate-pulse">Kunde antwortet …</span>
+      <div className="flex flex-col items-center gap-6">
+        <div className="relative flex h-40 w-40 items-center justify-center">
+          {phase === "ai-speaking" && <span className="absolute inset-0 animate-ping rounded-full bg-accent/20" />}
+          {phase === "listening" && !isMuted && <span className="absolute inset-0 animate-pulse rounded-full bg-ink/10" />}
+          <div
+            className={cn(
+              "relative flex h-28 w-28 items-center justify-center rounded-full text-3xl font-semibold text-white transition-colors",
+              phase === "ai-speaking" ? "bg-accent" : "bg-ink",
+            )}
+          >
+            K
           </div>
-        )}
-        {phase === "loading" && (
-          <div className="flex items-center gap-1.5 text-sm text-ink-muted">Gespräch wird vorbereitet …</div>
-        )}
+        </div>
+        <p className="text-sm font-medium text-ink-muted">{statusLabel[phase]}</p>
       </div>
 
-      {paused ? (
-        <Card className="mt-3 text-center text-sm text-ink-muted">Training pausiert. Klicke auf „Fortsetzen“, um weiterzumachen.</Card>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          {recorder.isRecording && (
-            <div className="flex items-center gap-2 text-sm font-medium text-danger">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-danger" />
-              Aufnahme läuft … {recorder.interimText && <span className="text-ink-muted">„{recorder.interimText}“</span>}
+      <div className="flex w-full max-w-md flex-col items-center gap-4 px-4">
+        {phase !== "incoming" && (
+          <div className="w-full">
+            <div className="mb-1 flex justify-between text-xs text-ink-muted">
+              <span>Widerstand des Kunden</span>
+              <span>{resistance}%</span>
             </div>
-          )}
-          <div className="flex items-end gap-2">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Deine Antwort …"
-              rows={2}
-              disabled={phase !== "chat"}
-              className="flex-1 resize-none rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-ink disabled:opacity-60"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendReply(inputText, "text");
-                }
-              }}
+            <ProgressBar
+              percent={resistance}
+              barClassName={cn(resistance > 60 ? "bg-danger" : resistance > 35 ? "bg-warn" : "bg-accent")}
             />
-            <div className="flex flex-col gap-2">
-              {recorder.isSupported && (
-                <button
-                  onClick={() => (recorder.isRecording ? recorder.stop() : recorder.start())}
-                  disabled={phase !== "chat"}
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center rounded-xl transition-colors disabled:opacity-50",
-                    recorder.isRecording ? "bg-danger text-white" : "bg-sand text-ink hover:bg-sand-dark",
-                  )}
-                  title="Antwort aufnehmen"
-                >
-                  {recorder.isRecording ? <Square size={18} /> : <Mic size={18} />}
-                </button>
-              )}
-              <Button
-                onClick={() => sendReply(inputText, "text")}
-                disabled={phase !== "chat" || !inputText.trim()}
-                className="h-11 px-4"
-              >
-                <Send size={16} />
-              </Button>
-            </div>
           </div>
-          <p className="text-xs text-ink-muted">
-            {recorder.isSupported
-              ? "Antwort aufnehmen oder tippen — Enter zum Senden."
-              : "Spracherkennung wird von diesem Browser nicht unterstützt. Bitte tippen."}
-          </p>
-          {recorder.error && <p className="text-xs text-danger">{recorder.error}</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MessageBubble({ message, onSpeak }: { message: ChatMessage; onSpeak: (text: string) => void }) {
-  const isUser = message.role === "user";
-  return (
-    <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-          isUser ? "bg-ink text-white" : "bg-sand text-ink",
         )}
-      >
-        <p>{message.text}</p>
-        <div className="mt-1 flex items-center gap-2">
-          {message.inputMode === "voice" && (
-            <span
-              className={cn(
-                "flex items-center gap-1 text-[10px] uppercase tracking-wide",
-                isUser ? "text-white/60" : "text-ink-muted",
-              )}
-            >
-              <Mic size={10} /> Sprachantwort
-            </span>
-          )}
-          {!isUser && (
-            <button
-              onClick={() => onSpeak(message.text)}
-              className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-ink-muted hover:text-ink"
-            >
-              <Volume2 size={11} /> Antwort anhören
-            </button>
-          )}
+
+        <div className="min-h-[3rem] w-full rounded-xl bg-sand/70 px-4 py-2.5 text-center text-sm text-ink-soft">
+          {phase === "listening" && !isMuted ? callVoice.liveText || "…" : caption || " "}
         </div>
+
+        {callVoice.error && <p className="text-xs text-danger">{callVoice.error}</p>}
+
+        {needsTypedFallback && (
+          <div className="flex w-full gap-2">
+            <input
+              autoFocus
+              value={typedFallback}
+              onChange={(e) => setTypedFallback(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitTypedFallback()}
+              placeholder="Spracherkennung nicht verfügbar — Antwort tippen …"
+              className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink"
+            />
+            <Button onClick={submitTypedFallback} disabled={!typedFallback.trim()}>
+              Senden
+            </Button>
+          </div>
+        )}
+
+        {phase === "incoming" ? (
+          <button
+            onClick={answerCall}
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-accent text-white shadow-soft transition-transform hover:brightness-105 active:scale-95"
+            title="Anruf annehmen"
+          >
+            <Phone size={26} />
+          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            {callVoice.isSupported && (
+              <button
+                onClick={toggleMute}
+                className={cn(
+                  "flex h-12 w-12 items-center justify-center rounded-full transition-colors",
+                  isMuted ? "bg-danger text-white" : "bg-sand text-ink hover:bg-sand-dark",
+                )}
+                title={isMuted ? "Stummschaltung aufheben" : "Stummschalten"}
+              >
+                {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+              </button>
+            )}
+            <button
+              onClick={hangUp}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-danger text-white shadow-soft transition-transform hover:brightness-105 active:scale-95"
+              title="Auflegen"
+            >
+              <PhoneOff size={22} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

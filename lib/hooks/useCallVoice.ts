@@ -1,44 +1,74 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-
-interface UseVoiceRecorderResult {
-  isSupported: boolean;
-  isRecording: boolean;
-  start: () => void;
-  stop: () => void;
-  interimText: string;
-  error: string | null;
-}
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.",
   "permission-denied": "Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.",
-  "no-speech": "Es wurde nichts gehört. Versuch es nochmal oder tippe deine Antwort.",
   "audio-capture": "Kein Mikrofon gefunden. Prüfe deine Geräteeinstellungen.",
   network: "Netzwerkfehler bei der Spracherkennung. Bitte versuch es erneut.",
   "service-not-allowed": "Spracherkennung ist in diesem Browser/Kontext blockiert.",
 };
 
-export function useVoiceRecorder(onResult: (finalText: string, seconds: number) => void): UseVoiceRecorderResult {
-  const [isRecording, setIsRecording] = useState(false);
-  const [interimText, setInterimText] = useState("");
+const SILENCE_MS = 1400;
+
+interface UseCallVoiceOptions {
+  /** Fires once the caller has paused for SILENCE_MS after saying something. */
+  onUtterance: (text: string, seconds: number) => void;
+  enabled: boolean;
+}
+
+interface UseCallVoiceResult {
+  isSupported: boolean;
+  isListening: boolean;
+  liveText: string;
+  error: string | null;
+  start: () => void;
+  stop: () => void;
+}
+
+/**
+ * Continuous, hands-free speech capture for the call screen: no manual
+ * record/stop — the caller just talks, and after a short pause the
+ * accumulated utterance is handed off automatically.
+ */
+export function useCallVoice({ onUtterance, enabled }: UseCallVoiceOptions): UseCallVoiceResult {
+  const [isListening, setIsListening] = useState(false);
+  const [liveText, setLiveText] = useState("");
   const [error, setError] = useState<string | null>(null);
+
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const finalTextRef = useRef<string>("");
+  const finalTextRef = useRef("");
+  const startTimeRef = useRef(0);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionalStopRef = useRef(false);
+  const onUtteranceRef = useRef(onUtterance);
+  onUtteranceRef.current = onUtterance;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
   const isSupported =
     typeof window !== "undefined" &&
     Boolean((window as WindowWithSpeech).SpeechRecognition || (window as WindowWithSpeech).webkitSpeechRecognition);
 
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
   const start = useCallback(() => {
-    if (!isSupported) return;
+    if (!isSupported || recognitionRef.current) return;
     const SpeechRecognitionCtor =
       (window as WindowWithSpeech).SpeechRecognition || (window as WindowWithSpeech).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
 
     setError(null);
+    finalTextRef.current = "";
+    setLiveText("");
+    startTimeRef.current = Date.now();
+    intentionalStopRef.current = false;
 
     let recognition: SpeechRecognitionLike;
     try {
@@ -52,9 +82,6 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    finalTextRef.current = "";
-    startTimeRef.current = Date.now();
-
     recognition.onresult = (event) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -65,41 +92,60 @@ export function useVoiceRecorder(onResult: (finalText: string, seconds: number) 
           interim += result[0].transcript;
         }
       }
-      setInterimText(interim);
+      setLiveText((finalTextRef.current + interim).trim());
+
+      clearSilenceTimer();
+      silenceTimerRef.current = setTimeout(() => {
+        const text = finalTextRef.current.trim();
+        if (text) {
+          const seconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+          intentionalStopRef.current = true;
+          recognitionRef.current?.stop();
+          onUtteranceRef.current(text, seconds);
+        }
+      }, SILENCE_MS);
     };
 
     recognition.onerror = (event) => {
       const code = event?.error;
-      setIsRecording(false);
-      if (code && code !== "aborted") {
+      if (code && code !== "aborted" && code !== "no-speech") {
         setError(ERROR_MESSAGES[code] ?? `Fehler bei der Spracherkennung (${code}).`);
       }
     };
 
     recognition.onend = () => {
-      setIsRecording(false);
+      clearSilenceTimer();
+      setIsListening(false);
+      recognitionRef.current = null;
+      // Browsers can end recognition on their own (long silence, internal
+      // timeout). If we didn't stop it ourselves and the call is still
+      // active, keep the mic hands-free by restarting automatically.
+      if (!intentionalStopRef.current && enabledRef.current) {
+        start();
+      }
     };
 
     recognitionRef.current = recognition;
     try {
       recognition.start();
-      setIsRecording(true);
+      setIsListening(true);
     } catch {
-      setError("Spracherkennung konnte nicht gestartet werden. Bitte versuch es erneut.");
-      setIsRecording(false);
+      setError("Spracherkennung konnte nicht gestartet werden.");
+      recognitionRef.current = null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSupported]);
 
   const stop = useCallback(() => {
+    intentionalStopRef.current = true;
+    clearSilenceTimer();
     recognitionRef.current?.stop();
-    setIsRecording(false);
-    const seconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
-    const text = finalTextRef.current.trim();
-    setInterimText("");
-    if (text) onResult(text, seconds);
-  }, [onResult]);
+    setIsListening(false);
+  }, []);
 
-  return { isSupported, isRecording, start, stop, interimText, error };
+  useEffect(() => stop, [stop]);
+
+  return { isSupported, isListening, liveText, error, start, stop };
 }
 
 interface SpeechRecognitionResultLike {

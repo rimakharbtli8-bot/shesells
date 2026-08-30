@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { FEATURES } from "@/lib/config";
 
 // TEXT_TO_SPEECH_API_KEY stays server-only. The client currently uses the
-// browser's built-in speechSynthesis API to read the customer's lines aloud
-// (see "Antwort anhören"), so this route is not called yet — it's the
-// drop-in target once a cloud TTS provider (for a more realistic customer
-// voice) is connected.
+// browser's built-in speechSynthesis API to auto-play the customer's lines
+// during the call (see lib/hooks/useCallTts.ts), so this route is not
+// called yet — it's the drop-in target once a cloud TTS provider (for a
+// genuinely realistic customer voice) is connected.
 const TEXT_TO_SPEECH_API_KEY = process.env.TEXT_TO_SPEECH_API_KEY;
 
 export async function POST(request: Request) {

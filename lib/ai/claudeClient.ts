@@ -1,0 +1,18 @@
+import Anthropic from "@anthropic-ai/sdk";
+
+// Imported only from app/api/*/route.ts handlers — never from client components.
+
+export const CLAUDE_MODEL = "claude-opus-5";
+
+let cachedClient: Anthropic | null = null;
+
+/** Server-only. Returns null when LLM_API_KEY isn't configured, in which
+ *  case callers fall back to the heuristic mock engine. */
+export function getClaudeClient(): Anthropic | null {
+  const apiKey = process.env.LLM_API_KEY;
+  if (!apiKey) return null;
+  if (!cachedClient) {
+    cachedClient = new Anthropic({ apiKey });
+  }
+  return cachedClient;
+}
