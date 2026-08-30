@@ -1,0 +1,188 @@
+import type { TrainingSession } from "@/lib/types";
+import { uid } from "@/lib/utils";
+
+const now = Date.now();
+const hoursAgo = (h: number) => new Date(now - h * 3600 * 1000).toISOString();
+
+export const SEED_SESSIONS: TrainingSession[] = [
+  {
+    id: uid("session"),
+    date: hoursAgo(2),
+    trainingType: "einwandtraining",
+    difficulty: "fortgeschritten",
+    objectionId: "muss-nachdenken",
+    objectionText: "Ich muss darüber nachdenken.",
+    transcript: [],
+    score: 87,
+    breakdown: {
+      understanding: 92,
+      questioning: 78,
+      communication: 88,
+      empathy: 90,
+      confidence: 85,
+      structure: 84,
+      concision: 82,
+    },
+    feedback: {
+      good: ["Du bist ruhig geblieben und hast nicht sofort argumentiert."],
+      improve: ["Stelle die offene Frage noch früher im Gespräch."],
+      focus: "Fragetechnik",
+      recommendedExercise: "Trainiere 3x den Einwand „Ich muss darüber nachdenken.“ mit Fokus auf offene Fragen.",
+    },
+    durationSeconds: 96,
+    xpEarned: 150,
+  },
+  {
+    id: uid("session"),
+    date: hoursAgo(9),
+    trainingType: "einwandtraining",
+    difficulty: "schwer",
+    objectionId: "zu-teuer",
+    objectionText: "Zu teuer.",
+    transcript: [],
+    score: 74,
+    breakdown: {
+      understanding: 80,
+      questioning: 62,
+      communication: 76,
+      empathy: 70,
+      confidence: 78,
+      structure: 72,
+      concision: 75,
+    },
+    feedback: {
+      good: ["Guter, souveräner Tonfall."],
+      improve: ["Du bist zu schnell in die Rechtfertigung gegangen."],
+      focus: "Preis-Einwände",
+      recommendedExercise: "Trainiere den Preis-Einwand ohne sofort einen Rabatt anzudeuten.",
+    },
+    durationSeconds: 142,
+    xpEarned: 100,
+  },
+  {
+    id: uid("session"),
+    date: hoursAgo(30),
+    trainingType: "einwandtraining",
+    difficulty: "fortgeschritten",
+    objectionId: "partner-fragen",
+    objectionText: "Ich muss mit meinem Partner sprechen.",
+    transcript: [],
+    score: 81,
+    breakdown: {
+      understanding: 85,
+      questioning: 80,
+      communication: 82,
+      empathy: 88,
+      confidence: 76,
+      structure: 79,
+      concision: 80,
+    },
+    feedback: {
+      good: ["Empathisch auf den Einwand reagiert."],
+      improve: ["Frage nach der eigenen Meinung des Kunden kam etwas spät."],
+      focus: "Struktur",
+      recommendedExercise: "Übe den 3-Schritte-Aufbau: Verstehen → Vertiefen → Perspektive öffnen.",
+    },
+    durationSeconds: 110,
+    xpEarned: 100,
+  },
+  {
+    id: uid("session"),
+    date: hoursAgo(54),
+    trainingType: "einwandtraining",
+    difficulty: "anfaenger",
+    objectionId: "keine-zeit",
+    objectionText: "Ich habe gerade keine Zeit.",
+    transcript: [],
+    score: 90,
+    breakdown: {
+      understanding: 94,
+      questioning: 88,
+      communication: 90,
+      empathy: 92,
+      confidence: 89,
+      structure: 87,
+      concision: 91,
+    },
+    feedback: {
+      good: ["Sehr präzise und klar kommuniziert.", "Gute Priorisierungsfrage gestellt."],
+      improve: ["Minimal — weiter so."],
+      focus: "Feinschliff Tonalität",
+      recommendedExercise: "Fordere dich mit dem Schwierigkeitsgrad „Schwer“ heraus.",
+    },
+    durationSeconds: 78,
+    xpEarned: 200,
+  },
+  {
+    id: uid("session"),
+    date: hoursAgo(78),
+    trainingType: "einwandtraining",
+    difficulty: "fortgeschritten",
+    objectionId: "infos-schicken",
+    objectionText: "Schick mir erstmal Infos.",
+    transcript: [],
+    score: 68,
+    breakdown: {
+      understanding: 72,
+      questioning: 55,
+      communication: 70,
+      empathy: 74,
+      confidence: 65,
+      structure: 66,
+      concision: 73,
+    },
+    feedback: {
+      good: ["Freundlicher, offener Ton."],
+      improve: ["Zu schnell zugestimmt, ohne nachzufragen was den Kunden wirklich interessiert."],
+      focus: "Fragetechnik",
+      recommendedExercise: "Trainiere, bevor du Infos zusagst, immer eine Rückfrage zu stellen.",
+    },
+    durationSeconds: 64,
+    xpEarned: 100,
+  },
+  {
+    id: uid("session"),
+    date: hoursAgo(100),
+    trainingType: "einwandtraining",
+    difficulty: "schwer",
+    objectionId: "erstmal-vergleichen",
+    objectionText: "Ich möchte erstmal vergleichen.",
+    transcript: [],
+    score: 79,
+    breakdown: {
+      understanding: 83,
+      questioning: 74,
+      communication: 80,
+      empathy: 81,
+      confidence: 75,
+      structure: 78,
+      concision: 76,
+    },
+    feedback: {
+      good: ["Guter Vergleichsrahmen aufgebaut."],
+      improve: ["Konkurrenz nicht direkt genug positiv abgegrenzt."],
+      focus: "Positionierung",
+      recommendedExercise: "Formuliere 3 klare Unterscheidungsmerkmale, die du im Gespräch einsetzen kannst.",
+    },
+    durationSeconds: 133,
+    xpEarned: 100,
+  },
+];
+
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  xp: number;
+  isCurrentUser?: boolean;
+}
+
+export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
+  { id: "u1", name: "Jonas K.", xp: 2450 },
+  { id: "u2", name: "Mia S.", xp: 2210 },
+  { id: "u3", name: "Elias R.", xp: 1980 },
+  { id: "u4", name: "Laura B.", xp: 1740 },
+  { id: "u5", name: "Tom H.", xp: 1590 },
+  { id: "u6", name: "Sophie L.", xp: 1420 },
+  { id: "u7", name: "Noah F.", xp: 1180 },
+  { id: "u8", name: "Anna P.", xp: 990 },
+];
