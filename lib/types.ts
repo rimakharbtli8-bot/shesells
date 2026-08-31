@@ -53,6 +53,7 @@ export interface SessionFeedback {
 
 export interface CustomerPersona {
   name: string;
+  gender: "male" | "female";
   archetype: string;
   ageContext: string;
   communicationStyle: string;

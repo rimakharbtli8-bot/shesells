@@ -120,11 +120,15 @@ function SimulationContent() {
   function speakThenListen(text: string) {
     setCaption(text);
     setPhase("ai-speaking");
-    tts.speak(text, () => {
-      setPhase("listening");
-      setCaption("");
-      if (!isMutedRef.current) callVoice.start();
-    });
+    tts.speak(
+      text,
+      () => {
+        setPhase("listening");
+        setCaption("");
+        if (!isMutedRef.current) callVoice.start();
+      },
+      personaRef.current?.gender,
+    );
   }
 
   async function handleUtterance(text: string, seconds: number) {
@@ -200,7 +204,7 @@ function SimulationContent() {
       if (customerData.isClosing || customerData.hangsUp) {
         setCaption(customerData.text);
         setPhase("ai-speaking");
-        tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback));
+        tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback), personaRef.current?.gender);
       } else {
         speakThenListen(customerData.text);
       }

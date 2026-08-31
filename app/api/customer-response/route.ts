@@ -22,8 +22,14 @@ const INSULT_MARKERS = [
   "verpiss dich",
   "hurensohn",
   "vollidiot",
+  "vollpfosten",
   "spast",
   "trottel",
+  "wichser",
+  "behindert",
+  "penner",
+  "missgeburt",
+  "fotze",
 ];
 
 function isInsulting(text: string): boolean {
@@ -164,6 +170,27 @@ export async function POST(request: Request) {
   const persona = incomingPersona ?? generatePersona();
   const priorState = incomingState ?? getInitialEmotionalState(difficulty);
 
+  // Deterministic safety net, checked BEFORE the LLM call (and regardless
+  // of whether it's even configured): a real customer hangs up on a clear
+  // insult every time, not just when the model happens to judge it that
+  // way. This also skips the round-trip entirely, so hangup is instant.
+  if (userReply && isInsulting(userReply)) {
+    const hangupState: CustomerEmotionalState = {
+      ...priorState,
+      trust: 0,
+      defensiveness: 100,
+      frustration: 100,
+    };
+    return NextResponse.json({
+      text: HANGUP_LINES[Math.floor(Math.random() * HANGUP_LINES.length)],
+      resistance: 100,
+      isClosing: false,
+      hangsUp: true,
+      persona,
+      emotionalState: hangupState,
+    });
+  }
+
   if (client) {
     try {
       const systemPrompt = buildSystemPrompt(trainingType, difficulty, persona, priorState, objection?.text);
@@ -227,23 +254,7 @@ export async function POST(request: Request) {
   }
 
   // Mock fallback — used when LLM_API_KEY isn't set, or if the real call errors.
-  if (userReply && isInsulting(userReply)) {
-    const hangupState: CustomerEmotionalState = {
-      ...priorState,
-      trust: 0,
-      defensiveness: 100,
-      frustration: 100,
-    };
-    return NextResponse.json({
-      text: HANGUP_LINES[Math.floor(Math.random() * HANGUP_LINES.length)],
-      resistance: 100,
-      isClosing: false,
-      hangsUp: true,
-      persona,
-      emotionalState: hangupState,
-    });
-  }
-
+  // (The insult/hangup check already ran above, before the LLM call.)
   const result = generateCustomerTurn({
     userReply: userReply ?? "",
     difficulty,

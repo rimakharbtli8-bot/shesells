@@ -2,7 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 
 // Imported only from app/api/*/route.ts handlers — never from client components.
 
-export const CLAUDE_MODEL = "claude-opus-5";
+// Sonnet, not Opus: this model plays the customer live on every call turn,
+// so response latency matters as much as reasoning depth here.
+export const CLAUDE_MODEL = "claude-sonnet-5";
 
 let cachedClient: Anthropic | null = null;
 

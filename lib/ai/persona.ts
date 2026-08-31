@@ -2,34 +2,34 @@ import type { CustomerEmotionalState, CustomerPersona, Difficulty } from "@/lib/
 
 interface Archetype {
   id: string;
-  label: string;
+  labelMale: string;
+  labelFemale: string;
   communicationStyle: string;
   decisionMakingStyle: string;
   patienceLevel: CustomerPersona["patienceLevel"];
 }
 
 // The twelve customer types — each nudges tone, pacing, and what actually
-// moves them, so the same objection plays out differently persona to persona.
+// moves them, so the same objection plays out differently persona to
+// persona. Labels come in both grammatical genders so they always agree
+// with the persona's (independently chosen) name.
 const ARCHETYPES: Archetype[] = [
-  { id: "skeptic", label: "Der Skeptiker", communicationStyle: "hinterfragt fast alles, glaubt nicht sofort", decisionMakingStyle: "braucht Beweise, misstraut glatten Antworten", patienceLevel: "mittel" },
-  { id: "busy", label: "Die Vielbeschäftigte", communicationStyle: "kurz angebunden, will schnell auf den Punkt", decisionMakingStyle: "entscheidet nach Aufwand-Nutzen, keine Zeit für Umwege", patienceLevel: "niedrig" },
-  { id: "analytical", label: "Der Analytische", communicationStyle: "sachlich, fragt nach Zahlen und Details", decisionMakingStyle: "rein rational, will Fakten vor Gefühl", patienceLevel: "hoch" },
-  { id: "emotional", label: "Die Emotionale", communicationStyle: "spricht offen über Sorgen und Hoffnungen", decisionMakingStyle: "entscheidet aus dem Bauch, reagiert stark auf Empathie", patienceLevel: "mittel" },
-  { id: "price_sensitive", label: "Der Preisbewusste", communicationStyle: "vergleicht ständig mit Alternativen", decisionMakingStyle: "Preis-Leistung entscheidet, sehr wertbewusst", patienceLevel: "mittel" },
-  { id: "indecisive", label: "Die Unentschlossene", communicationStyle: "zögert, relativiert eigene Aussagen", decisionMakingStyle: "braucht viel Rückversicherung, Angst vor Fehlentscheidung", patienceLevel: "hoch" },
-  { id: "dominant", label: "Der Dominante", communicationStyle: "direkt, testet den Verkäufer bewusst", decisionMakingStyle: "will die Kontrolle behalten, entscheidet spontan wenn überzeugt", patienceLevel: "niedrig" },
-  { id: "friendly", label: "Die Freundliche", communicationStyle: "offen und nett, plaudert auch mal", decisionMakingStyle: "sympathiegetrieben, aber nicht automatisch kaufbereit", patienceLevel: "hoch" },
-  { id: "silent", label: "Der Wortkarge", communicationStyle: "antwortet knapp, muss aktiv herausgefragt werden", decisionMakingStyle: "unklar von außen, entscheidet innerlich, sagt wenig dazu", patienceLevel: "mittel" },
-  { id: "overthinker", label: "Die Grüblerin", communicationStyle: "denkt laut, spinnt Konsequenzen weiter", decisionMakingStyle: "durchdenkt jedes Szenario, bevor sie zustimmt", patienceLevel: "hoch" },
-  { id: "researcher", label: "Der Rechercheur", communicationStyle: "hat sich vorher informiert, stellt Fachfragen", decisionMakingStyle: "vergleicht mit dem, was er bereits recherchiert hat", patienceLevel: "mittel" },
-  { id: "impulsive", label: "Die Spontane", communicationStyle: "schnell, entscheidet aus dem Moment", decisionMakingStyle: "wenn überzeugt, dann sofort — sonst genauso schnell wieder weg", patienceLevel: "niedrig" },
+  { id: "skeptic", labelMale: "Der Skeptiker", labelFemale: "Die Skeptikerin", communicationStyle: "hinterfragt fast alles, glaubt nicht sofort", decisionMakingStyle: "braucht Beweise, misstraut glatten Antworten", patienceLevel: "mittel" },
+  { id: "busy", labelMale: "Der Vielbeschäftigte", labelFemale: "Die Vielbeschäftigte", communicationStyle: "kurz angebunden, will schnell auf den Punkt", decisionMakingStyle: "entscheidet nach Aufwand-Nutzen, keine Zeit für Umwege", patienceLevel: "niedrig" },
+  { id: "analytical", labelMale: "Der Analytische", labelFemale: "Die Analytische", communicationStyle: "sachlich, fragt nach Zahlen und Details", decisionMakingStyle: "rein rational, will Fakten vor Gefühl", patienceLevel: "hoch" },
+  { id: "emotional", labelMale: "Der Emotionale", labelFemale: "Die Emotionale", communicationStyle: "spricht offen über Sorgen und Hoffnungen", decisionMakingStyle: "entscheidet aus dem Bauch, reagiert stark auf Empathie", patienceLevel: "mittel" },
+  { id: "price_sensitive", labelMale: "Der Preisbewusste", labelFemale: "Die Preisbewusste", communicationStyle: "vergleicht ständig mit Alternativen", decisionMakingStyle: "Preis-Leistung entscheidet, sehr wertbewusst", patienceLevel: "mittel" },
+  { id: "indecisive", labelMale: "Der Unentschlossene", labelFemale: "Die Unentschlossene", communicationStyle: "zögert, relativiert eigene Aussagen", decisionMakingStyle: "braucht viel Rückversicherung, Angst vor Fehlentscheidung", patienceLevel: "hoch" },
+  { id: "dominant", labelMale: "Der Dominante", labelFemale: "Die Dominante", communicationStyle: "direkt, testet den Verkäufer bewusst", decisionMakingStyle: "will die Kontrolle behalten, entscheidet spontan wenn überzeugt", patienceLevel: "niedrig" },
+  { id: "friendly", labelMale: "Der Freundliche", labelFemale: "Die Freundliche", communicationStyle: "offen und nett, plaudert auch mal", decisionMakingStyle: "sympathiegetrieben, aber nicht automatisch kaufbereit", patienceLevel: "hoch" },
+  { id: "silent", labelMale: "Der Wortkarge", labelFemale: "Die Wortkarge", communicationStyle: "antwortet knapp, muss aktiv herausgefragt werden", decisionMakingStyle: "unklar von außen, entscheidet innerlich, sagt wenig dazu", patienceLevel: "mittel" },
+  { id: "overthinker", labelMale: "Der Grübler", labelFemale: "Die Grüblerin", communicationStyle: "denkt laut, spinnt Konsequenzen weiter", decisionMakingStyle: "durchdenkt jedes Szenario, bevor sie zustimmt", patienceLevel: "hoch" },
+  { id: "researcher", labelMale: "Der Rechercheur", labelFemale: "Die Rechercheurin", communicationStyle: "hat sich vorher informiert, stellt Fachfragen", decisionMakingStyle: "vergleicht mit dem, was er bereits recherchiert hat", patienceLevel: "mittel" },
+  { id: "impulsive", labelMale: "Der Spontane", labelFemale: "Die Spontane", communicationStyle: "schnell, entscheidet aus dem Moment", decisionMakingStyle: "wenn überzeugt, dann sofort — sonst genauso schnell wieder weg", patienceLevel: "niedrig" },
 ];
 
-const NAMES = [
-  "Sabine", "Markus", "Julia", "Thomas", "Nina", "Stefan",
-  "Laura", "Michael", "Anja", "Peter", "Katrin", "Daniel",
-  "Melanie", "Jonas", "Claudia", "Sven",
-];
+const FEMALE_NAMES = ["Sabine", "Julia", "Nina", "Laura", "Anja", "Katrin", "Melanie", "Claudia"];
+const MALE_NAMES = ["Markus", "Thomas", "Stefan", "Michael", "Peter", "Daniel", "Jonas", "Sven"];
 
 const AGE_CONTEXTS = [
   "38, arbeitet Vollzeit und hat zwei Kinder",
@@ -77,11 +77,13 @@ function pick<T>(arr: T[], seed: number, salt: number): T {
 
 export function generatePersona(seed: number = Date.now()): CustomerPersona {
   const archetype = pick(ARCHETYPES, seed, 1);
-  const name = pick(NAMES, seed, 2);
+  const gender: CustomerPersona["gender"] = Math.abs(Math.floor(seed / 97) + 2) % 2 === 0 ? "female" : "male";
+  const name = gender === "female" ? pick(FEMALE_NAMES, seed, 2) : pick(MALE_NAMES, seed, 2);
   const ageContext = pick(AGE_CONTEXTS, seed, 3);
   return {
     name,
-    archetype: archetype.label,
+    gender,
+    archetype: gender === "female" ? archetype.labelFemale : archetype.labelMale,
     ageContext,
     communicationStyle: archetype.communicationStyle,
     decisionMakingStyle: archetype.decisionMakingStyle,
