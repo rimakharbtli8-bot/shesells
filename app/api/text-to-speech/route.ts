@@ -37,7 +37,10 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_multilingual_v2",
+        // Turbo trades a little quality for much lower generation latency —
+        // worth it here since this runs live on every call turn. Still
+        // multilingual/German-capable.
+        model_id: "eleven_turbo_v2_5",
         // Low stability + no style reads as flat/robotic; a bit more style
         // and speaker boost gives noticeably more natural, human prosody.
         voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.35, use_speaker_boost: true },

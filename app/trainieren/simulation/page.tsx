@@ -29,6 +29,17 @@ import type {
 
 type Phase = "incoming" | "connecting" | "ai-speaking" | "listening" | "thinking" | "result";
 
+// Used only if the background scoring call for the very last turn never
+// resolves (e.g. a network error right at the end of the call).
+const FALLBACK_END_FEEDBACK: SessionFeedback = {
+  good: ["Du hast das Gespräch bis zum Ende geführt."],
+  improve: ["Die Bewertung für die letzte Antwort konnte nicht geladen werden — die übrigen Antworten sind trotzdem ausgewertet."],
+  focus: "Gesprächsstruktur",
+  recommendedExercise: "Trainiere weiter mit ähnlichen Einwänden.",
+  customerFeltReport: "Keine Einschätzung für die letzte Antwort verfügbar.",
+  goldenPath: "Keine Analyse für die letzte Antwort verfügbar.",
+};
+
 function SimulationContent() {
   const searchParams = useSearchParams();
   const trainingType = (searchParams.get("type") as TrainingTypeId) || "frei";
@@ -60,6 +71,8 @@ function SimulationContent() {
   const [xpEarnedDisplay, setXpEarnedDisplay] = useState(0);
 
   const breakdownsRef = useRef<ScoreBreakdown[]>([]);
+  const lastFeedbackRef = useRef<SessionFeedback | null>(null);
+  const pendingAnalysisRef = useRef<Promise<void> | null>(null);
   const callStartRef = useRef(0);
   const transcriptRef = useRef<ChatMessage[]>([]);
   const isMutedRef = useRef(false);
@@ -148,12 +161,14 @@ function SimulationContent() {
     setCaption("");
     setCallError(null);
 
-    try {
-      // These two calls don't depend on each other's result — run them
-      // concurrently instead of back-to-back, which was needlessly
-      // doubling the "customer is thinking" wait on every turn.
-      const [analyzeRes, customerRes] = await Promise.all([
-        fetch("/api/analyze-response", {
+    // Scoring this turn doesn't affect what the customer says next, so it
+    // shouldn't block the customer's reply either — that was needlessly
+    // making every "customer is thinking" pause as slow as the SLOWER of
+    // the two calls. Kick it off in the background; its result is only
+    // needed once the call actually ends (finalizeSession/hangUp).
+    const analysisDone = (async () => {
+      try {
+        const analyzeRes = await fetch("/api/analyze-response", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -163,29 +178,34 @@ function SimulationContent() {
             objectionText: objection?.text,
             transcript: priorTranscript,
           }),
-        }),
-        fetch("/api/customer-response", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode: "reply",
-            trainingType,
-            difficulty,
-            objectionSlug,
-            userReply: trimmed,
-            turn,
-            transcript: priorTranscript,
-            persona: personaRef.current,
-            emotionalState: emotionalStateRef.current,
-          }),
-        }),
-      ]);
+        });
+        if (!analyzeRes.ok) throw new Error(`analyze-response returned ${analyzeRes.status}`);
+        const analyzeData = await analyzeRes.json();
+        if (!analyzeData?.breakdown) throw new Error("analyze-response missing breakdown");
+        breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
+        lastFeedbackRef.current = analyzeData.feedback;
+      } catch (err) {
+        console.error("analyze-response failed (scoring for this turn skipped):", err);
+      }
+    })();
+    pendingAnalysisRef.current = analysisDone;
 
-      if (!analyzeRes.ok) throw new Error(`analyze-response returned ${analyzeRes.status}`);
-      const analyzeData = await analyzeRes.json();
-      if (!analyzeData?.breakdown) throw new Error("analyze-response missing breakdown");
-      breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
-
+    try {
+      const customerRes = await fetch("/api/customer-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "reply",
+          trainingType,
+          difficulty,
+          objectionSlug,
+          userReply: trimmed,
+          turn,
+          transcript: priorTranscript,
+          persona: personaRef.current,
+          emotionalState: emotionalStateRef.current,
+        }),
+      });
       if (!customerRes.ok) throw new Error(`customer-response returned ${customerRes.status}`);
       const customerData = await customerRes.json();
       if (!customerData?.text) throw new Error("customer-response missing text");
@@ -204,7 +224,14 @@ function SimulationContent() {
       if (customerData.isClosing || customerData.hangsUp) {
         setCaption(customerData.text);
         setPhase("ai-speaking");
-        tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback), personaRef.current?.gender);
+        tts.speak(
+          customerData.text,
+          async () => {
+            await analysisDone;
+            finalizeSession(lastFeedbackRef.current ?? FALLBACK_END_FEEDBACK);
+          },
+          personaRef.current?.gender,
+        );
       } else {
         speakThenListen(customerData.text);
       }
@@ -259,9 +286,10 @@ function SimulationContent() {
     setPhase("result");
   }
 
-  function hangUp() {
+  async function hangUp() {
     tts.cancel();
     callVoice.stop();
+    if (pendingAnalysisRef.current) await pendingAnalysisRef.current;
     if (breakdownsRef.current.length === 0) {
       window.location.href = "/trainieren";
       return;

@@ -77,11 +77,15 @@ const RESPOND_TOOL = {
   strict: true,
 };
 
-function buildSystemPrompt(
+// Split in two: everything here is identical on every turn of the same
+// call (same persona, same scenario), so it's marked cache_control below
+// and Claude only has to actually process it once per call instead of
+// once per turn. Only buildStateBlock()'s few numbers change turn to
+// turn, so that part stays out of the cached prefix.
+function buildStaticSystemPrompt(
   trainingType: TrainingTypeId,
   difficulty: Difficulty,
   persona: CustomerPersona,
-  state: CustomerEmotionalState,
   objectionText?: string,
 ): string {
   const scenario = objectionText
@@ -100,9 +104,6 @@ DEINE PERSÖNLICHKEIT:
 - Kommunikationsstil: ${persona.communicationStyle}
 - Entscheidungsstil: ${persona.decisionMakingStyle}
 - Geduld: ${persona.patienceLevel}
-
-DEIN AKTUELLER INNERER ZUSTAND (0-100, dir selbst nicht bewusst als Zahl, aber so fühlst du gerade):
-Vertrauen: ${state.trust} · Interesse: ${state.interest} · Skepsis: ${state.skepticism} · Frustration: ${state.frustration} · Abwehrhaltung: ${state.defensiveness} · Dringlichkeit: ${state.urgency} · Verwirrung: ${state.confusion}
 
 WAS DU WIRKLICH WEISST, ABER NICHT VON DIR AUS ERZÄHLST (nur enthüllen, wenn der Verkäufer wirklich gut und konkret nachfragt — niemals ungefragt ausplaudern):
 - Eigentliches Ziel: ${persona.hiddenGoal}
@@ -124,6 +125,11 @@ WIE DU DENKST UND REAGIERST — das ist der wichtigste Teil:
 - Wenn der Verkäufer respektlos wird, dich beleidigt, offen manipuliert oder massiv unter Druck setzt: Das lässt du dir nicht gefallen. Reagiere kurz und deutlich ablehnend und beende das Gespräch (hangsUp = true) — das ist keine Übertreibung, das machen echte Menschen genauso. Ein einzelner unhöflicher Halbsatz reicht nicht (davon wirst du nur reservierter), aber echte Respektlosigkeit oder Beleidigungen schon.
 - Verlasse NIEMALS deine Rolle. Kein "Als KI kann ich...", keine Meta-Kommentare, keine Tipps an den Verkäufer, kein Bewusstsein davon, dass dies ein Training ist. Du bist ausschließlich ${persona.name}, nichts anderes — Bewertung und Feedback passieren an anderer Stelle, nicht durch dich.
 - Antworte ausschließlich über das Tool "respond_as_customer" und aktualisiere dabei ALLE Gefühlswerte ehrlich basierend auf dem, was gerade wirklich passiert ist (nicht nur minimal bewegen, wenn wirklich etwas Bedeutendes gesagt wurde).`;
+}
+
+function buildStateBlock(state: CustomerEmotionalState): string {
+  return `DEIN AKTUELLER INNERER ZUSTAND GERADE JETZT (0-100, dir selbst nicht als Zahl bewusst, aber so fühlst du dich in diesem Moment — kann sich seit dem letzten Satz verändert haben):
+Vertrauen: ${state.trust} · Interesse: ${state.interest} · Skepsis: ${state.skepticism} · Frustration: ${state.frustration} · Abwehrhaltung: ${state.defensiveness} · Dringlichkeit: ${state.urgency} · Verwirrung: ${state.confusion}`;
 }
 
 export async function POST(request: Request) {
@@ -193,7 +199,8 @@ export async function POST(request: Request) {
 
   if (client) {
     try {
-      const systemPrompt = buildSystemPrompt(trainingType, difficulty, persona, priorState, objection?.text);
+      const systemStatic = buildStaticSystemPrompt(trainingType, difficulty, persona, objection?.text);
+      const systemState = buildStateBlock(priorState);
       // The transcript's very first entry is the customer's own opening
       // line (role "customer" -> mapped to "assistant"). The Anthropic API
       // requires the message array to start with a "user" turn, so a
@@ -212,7 +219,10 @@ export async function POST(request: Request) {
       const response = await client.messages.create({
         model: CLAUDE_MODEL,
         max_tokens: 1024,
-        system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+        system: [
+          { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
+          { type: "text", text: systemState },
+        ],
         tools: [RESPOND_TOOL],
         tool_choice: { type: "tool", name: "respond_as_customer" },
         messages,
