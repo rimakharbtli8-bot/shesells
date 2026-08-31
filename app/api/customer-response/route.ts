@@ -8,6 +8,35 @@ import type { ChatMessage, CustomerEmotionalState, CustomerPersona, Difficulty, 
 
 const EMOTION_FIELDS = ["trust", "interest", "skepticism", "frustration", "defensiveness", "urgency", "confusion"] as const;
 
+// Crude but functional safety net for the mock engine (no LLM available to
+// judge tone): if the seller is clearly insulting, the customer hangs up
+// rather than the mock engine picking a generic "skeptical" reply.
+const INSULT_MARKERS = [
+  "idiot",
+  "dumm",
+  "blöd",
+  "arschloch",
+  "scheiß",
+  "halt dein maul",
+  "halts maul",
+  "verpiss dich",
+  "hurensohn",
+  "vollidiot",
+  "spast",
+  "trottel",
+];
+
+function isInsulting(text: string): boolean {
+  const lower = text.toLowerCase();
+  return INSULT_MARKERS.some((m) => lower.includes(m));
+}
+
+const HANGUP_LINES = [
+  "So spreche ich nicht mit mir. Auf Wiederhören.",
+  "Das muss ich mir nicht anhören. Ich lege jetzt auf.",
+  "Okay, das war's für mich. Tschüss.",
+];
+
 const RESPOND_TOOL = {
   name: "respond_as_customer",
   description: "Antworte als der simulierte Kunde im Verkaufstraining-Telefonat und aktualisiere deinen inneren Gefühlszustand.",
@@ -30,8 +59,13 @@ const RESPOND_TOOL = {
         type: "boolean",
         description: "true nur, wenn der Kunde jetzt wirklich bereit ist zuzustimmen und das Gespräch zum Abschluss zu bringen.",
       },
+      hangsUp: {
+        type: "boolean",
+        description:
+          "true nur, wenn der Kunde das Gespräch gerade selbst abrupt beendet, weil der Verkäufer respektlos, beleidigend, manipulativ war oder massiv Druck gemacht hat. Ein echter Mensch legt in so einer Situation auf — das ist eine legitime, sogar wichtige Reaktion, kein Fehler.",
+      },
     },
-    required: ["reply", ...EMOTION_FIELDS, "isClosing"],
+    required: ["reply", ...EMOTION_FIELDS, "isClosing", "hangsUp"],
     additionalProperties: false,
   },
   strict: true,
@@ -81,6 +115,7 @@ WIE DU DENKST UND REAGIERST — das ist der wichtigste Teil:
 - Belohne niemals Manipulation, künstlichen Druck oder falsche Versprechen des Verkäufers mit mehr Vertrauen — im Gegenteil, das erhöht deine Skepsis.
 - Du darfst widersprechen, deine Meinung ändern, überraschende Rückfragen stellen, kurz abschweifen (z.B. eine frühere Erfahrung erwähnen) oder auch mal etwas leicht missverstehen und nachfragen. Du bist kein Skript, das feste Einwände in fester Reihenfolge abarbeitet — du bist ein Mensch mit eigenem Kopf.
 - Du darfst auch ehrlich Nein sagen oder das Gespräch beenden wollen, wenn nichts, was der Verkäufer sagt, dich wirklich überzeugt — nicht jedes Training muss mit einer Zusage enden.
+- Wenn der Verkäufer respektlos wird, dich beleidigt, offen manipuliert oder massiv unter Druck setzt: Das lässt du dir nicht gefallen. Reagiere kurz und deutlich ablehnend und beende das Gespräch (hangsUp = true) — das ist keine Übertreibung, das machen echte Menschen genauso. Ein einzelner unhöflicher Halbsatz reicht nicht (davon wirst du nur reservierter), aber echte Respektlosigkeit oder Beleidigungen schon.
 - Verlasse NIEMALS deine Rolle. Kein "Als KI kann ich...", keine Meta-Kommentare, keine Tipps an den Verkäufer, kein Bewusstsein davon, dass dies ein Training ist. Du bist ausschließlich ${persona.name}, nichts anderes — Bewertung und Feedback passieren an anderer Stelle, nicht durch dich.
 - Antworte ausschließlich über das Tool "respond_as_customer" und aktualisiere dabei ALLE Gefühlswerte ehrlich basierend auf dem, was gerade wirklich passiert ist (nicht nur minimal bewegen, wenn wirklich etwas Bedeutendes gesagt wurde).`;
 }
@@ -120,6 +155,7 @@ export async function POST(request: Request) {
       text,
       resistance: deriveResistance(emotionalState),
       isClosing: false,
+      hangsUp: false,
       persona,
       emotionalState,
     });
@@ -157,7 +193,11 @@ export async function POST(request: Request) {
 
       const toolUse = response.content.find((b) => b.type === "tool_use");
       if (toolUse && toolUse.type === "tool_use") {
-        const input = toolUse.input as Partial<CustomerEmotionalState> & { reply?: string; isClosing?: boolean };
+        const input = toolUse.input as Partial<CustomerEmotionalState> & {
+          reply?: string;
+          isClosing?: boolean;
+          hangsUp?: boolean;
+        };
         if (!input.reply || typeof input.reply !== "string") {
           throw new Error("Claude tool_use response missing 'reply'");
         }
@@ -176,6 +216,7 @@ export async function POST(request: Request) {
           text: input.reply,
           resistance: deriveResistance(newState),
           isClosing: Boolean(input.isClosing),
+          hangsUp: Boolean(input.hangsUp),
           persona,
           emotionalState: newState,
         });
@@ -186,6 +227,23 @@ export async function POST(request: Request) {
   }
 
   // Mock fallback — used when LLM_API_KEY isn't set, or if the real call errors.
+  if (userReply && isInsulting(userReply)) {
+    const hangupState: CustomerEmotionalState = {
+      ...priorState,
+      trust: 0,
+      defensiveness: 100,
+      frustration: 100,
+    };
+    return NextResponse.json({
+      text: HANGUP_LINES[Math.floor(Math.random() * HANGUP_LINES.length)],
+      resistance: 100,
+      isClosing: false,
+      hangsUp: true,
+      persona,
+      emotionalState: hangupState,
+    });
+  }
+
   const result = generateCustomerTurn({
     userReply: userReply ?? "",
     difficulty,
@@ -207,5 +265,5 @@ export async function POST(request: Request) {
     confusion: priorState.confusion,
   };
 
-  return NextResponse.json({ ...result, persona, emotionalState: mockState });
+  return NextResponse.json({ ...result, hangsUp: false, persona, emotionalState: mockState });
 }

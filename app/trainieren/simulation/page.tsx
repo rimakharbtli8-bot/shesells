@@ -197,7 +197,7 @@ function SimulationContent() {
       setResistance(customerData.resistance);
       setTurn((t) => t + 1);
 
-      if (customerData.isClosing) {
+      if (customerData.isClosing || customerData.hangsUp) {
         setCaption(customerData.text);
         setPhase("ai-speaking");
         tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback));
