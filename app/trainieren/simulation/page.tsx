@@ -13,10 +13,19 @@ import { useCallVoice } from "@/lib/hooks/useCallVoice";
 import { useCallTts } from "@/lib/hooks/useCallTts";
 import { getObjectionBySlug } from "@/lib/data/objections";
 import { DIFFICULTIES } from "@/lib/data/trainingTypes";
-import { getDifficultyTone, getStartingResistance } from "@/lib/ai/mockCustomer";
+import { getStartingResistance } from "@/lib/ai/mockCustomer";
+import { getInitialEmotionalState } from "@/lib/ai/persona";
 import { getLevelForXp } from "@/lib/data/levels";
 import { SCORE_DIMENSIONS } from "@/lib/config";
-import type { ChatMessage, Difficulty, ScoreBreakdown, SessionFeedback, TrainingTypeId } from "@/lib/types";
+import type {
+  ChatMessage,
+  CustomerEmotionalState,
+  CustomerPersona,
+  Difficulty,
+  ScoreBreakdown,
+  SessionFeedback,
+  TrainingTypeId,
+} from "@/lib/types";
 
 type Phase = "incoming" | "connecting" | "ai-speaking" | "listening" | "thinking" | "result";
 
@@ -40,6 +49,10 @@ function SimulationContent() {
   const [levelUp, setLevelUp] = useState<{ level: number; name: string } | null>(null);
   const [typedFallback, setTypedFallback] = useState("");
   const [callError, setCallError] = useState<string | null>(null);
+  const [persona, setPersona] = useState<CustomerPersona | null>(null);
+
+  const personaRef = useRef<CustomerPersona | null>(null);
+  const emotionalStateRef = useRef<CustomerEmotionalState>(getInitialEmotionalState(difficulty));
 
   const [resultScore, setResultScore] = useState(0);
   const [resultBreakdown, setResultBreakdown] = useState<ScoreBreakdown | null>(null);
@@ -90,6 +103,12 @@ function SimulationContent() {
       if (!data?.text) throw new Error("customer-response missing text");
       const opening: ChatMessage = { id: `m_${Date.now()}`, role: "customer", text: data.text, timestamp: Date.now() };
       transcriptRef.current = [opening];
+      if (data.persona) {
+        personaRef.current = data.persona;
+        setPersona(data.persona);
+      }
+      if (data.emotionalState) emotionalStateRef.current = data.emotionalState;
+      if (typeof data.resistance === "number") setResistance(data.resistance);
       speakThenListen(data.text);
     } catch (err) {
       console.error("answerCall failed:", err);
@@ -129,7 +148,13 @@ function SimulationContent() {
       const analyzeRes = await fetch("/api/analyze-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: trimmed, difficulty, spokenSeconds: seconds, objectionText: objection?.text }),
+        body: JSON.stringify({
+          text: trimmed,
+          difficulty,
+          spokenSeconds: seconds,
+          objectionText: objection?.text,
+          transcript: priorTranscript,
+        }),
       });
       if (!analyzeRes.ok) throw new Error(`analyze-response returned ${analyzeRes.status}`);
       const analyzeData = await analyzeRes.json();
@@ -145,14 +170,16 @@ function SimulationContent() {
           difficulty,
           objectionSlug,
           userReply: trimmed,
-          resistance,
           turn,
           transcript: priorTranscript,
+          persona: personaRef.current,
+          emotionalState: emotionalStateRef.current,
         }),
       });
       if (!customerRes.ok) throw new Error(`customer-response returned ${customerRes.status}`);
       const customerData = await customerRes.json();
       if (!customerData?.text) throw new Error("customer-response missing text");
+      if (customerData.emotionalState) emotionalStateRef.current = customerData.emotionalState;
 
       const customerMsg: ChatMessage = {
         id: `m_${Date.now()}_c`,
@@ -234,6 +261,8 @@ function SimulationContent() {
       improve: ["Versuch beim nächsten Mal, das Gespräch bis zum natürlichen Ende zu führen — dann bekommst du vollständigeres Feedback."],
       focus: "Gesprächsdauer",
       recommendedExercise: "Führe das nächste Training bis zum Abschluss durch.",
+      customerFeltReport: "Nicht auswertbar — das Gespräch wurde vorzeitig beendet.",
+      goldenPath: "Führe das Training beim nächsten Mal bis zum natürlichen Ende, damit eine echte Analyse des Gesprächsverlaufs möglich ist.",
     });
   }
 
@@ -297,8 +326,8 @@ function SimulationContent() {
         <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
           {objection ? "Einwandtraining" : "Freies Training"} · {difficultyLabel}
         </p>
-        <h1 className="text-base font-semibold text-ink">Kunde am Telefon</h1>
-        <p className="text-xs text-ink-muted">{getDifficultyTone(difficulty)}</p>
+        <h1 className="text-base font-semibold text-ink">{persona ? persona.name : "Kunde am Telefon"}</h1>
+        <p className="text-xs text-ink-muted">{persona ? persona.archetype : "Verbindung wird gleich aufgebaut"}</p>
         {phase !== "incoming" && (
           <span className="mt-1 text-sm tabular-nums text-ink-muted">
             {minutes}:{seconds}
@@ -316,7 +345,7 @@ function SimulationContent() {
               phase === "ai-speaking" ? "bg-accent" : "bg-ink",
             )}
           >
-            K
+            {persona ? persona.name.charAt(0) : "?"}
           </div>
         </div>
         <p className="text-sm font-medium text-ink-muted">{statusLabel[phase]}</p>
@@ -467,6 +496,16 @@ function ResultScreen({
             <li key={i}>{g}</li>
           ))}
         </ul>
+      </Card>
+
+      <Card>
+        <h2 className="mb-2 text-sm font-semibold text-ink">Was der Kunde wirklich gefühlt hat</h2>
+        <p className="text-sm leading-relaxed text-ink-soft">{feedback.customerFeltReport}</p>
+      </Card>
+
+      <Card>
+        <h2 className="mb-2 text-sm font-semibold text-ink">So hätte ein sehr guter Closer reagiert</h2>
+        <p className="text-sm leading-relaxed text-ink-soft">{feedback.goldenPath}</p>
       </Card>
 
       <Card className="!border-accent/30 !bg-accent-soft">

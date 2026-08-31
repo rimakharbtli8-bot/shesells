@@ -2,13 +2,23 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Shuffle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { TRAINING_TYPES, DIFFICULTIES } from "@/lib/data/trainingTypes";
 import { OBJECTIONS, OBJECTION_CATEGORIES, getObjectionBySlug } from "@/lib/data/objections";
+import { useAppStore } from "@/lib/store/useAppStore";
 import type { Difficulty, TrainingTypeId } from "@/lib/types";
+
+function recommendDifficulty(avgScore: number | null): Difficulty {
+  if (avgScore === null) return "fortgeschritten";
+  if (avgScore < 60) return "anfaenger";
+  if (avgScore < 75) return "fortgeschritten";
+  if (avgScore < 90) return "schwer";
+  return "experte";
+}
 
 function TrainierenContent() {
   const router = useRouter();
@@ -23,6 +33,14 @@ function TrainierenContent() {
   const [step, setStep] = useState<0 | 1 | 2>(preselectedObjection ? 2 : 0);
 
   const needsObjection = type === "einwandtraining";
+
+  const sessions = useAppStore((s) => s.sessions);
+  const recentAvgScore = useMemo(() => {
+    const recent = sessions.slice(0, 5);
+    if (recent.length === 0) return null;
+    return Math.round(recent.reduce((a, s) => a + s.score, 0) / recent.length);
+  }, [sessions]);
+  const recommended = recommendDifficulty(recentAvgScore);
 
   const startTraining = (finalDifficulty: Difficulty) => {
     if (!type) return;
@@ -71,7 +89,20 @@ function TrainierenContent() {
       {step === 1 && (
         <div className="flex flex-col gap-5">
           <BackButton onClick={() => setStep(0)} />
-          <h2 className="text-lg font-medium text-ink">Welchen Einwand möchtest du trainieren?</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-medium text-ink">Welchen Einwand möchtest du trainieren?</h2>
+            <button
+              onClick={() => {
+                const random = OBJECTIONS[Math.floor(Math.random() * OBJECTIONS.length)];
+                setObjectionSlug(random.slug);
+                setStep(2);
+              }}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-ink-soft hover:bg-sand/60"
+            >
+              <Shuffle size={14} />
+              Zufälliger Einwand
+            </button>
+          </div>
           {OBJECTION_CATEGORIES.map((category) => (
             <div key={category.id}>
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink-soft">
@@ -133,7 +164,10 @@ function TrainierenContent() {
                 >
                   <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", d.dotClassName)} />
                   <div>
-                    <div className="text-sm font-semibold text-ink">{d.label}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-ink">{d.label}</span>
+                      {d.id === recommended && <Pill tone="accent">Empfohlen</Pill>}
+                    </div>
                     <div className="mt-0.5 text-xs text-ink-muted">{d.description}</div>
                   </div>
                 </Card>

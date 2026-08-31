@@ -262,10 +262,20 @@ export function buildFeedback(
 
   const focus = focusLabels[weakest[0]];
 
+  const customerFeltReport = analysis.isDismissive
+    ? "Nicht ernst genommen — die knappe Antwort hat das eigentliche Anliegen nicht abgeholt, dadurch bleibt der Zweifel unverändert bestehen."
+    : analysis.hasOpenQuestion
+      ? "Verstanden gefühlt — die offene Frage hat signalisiert, dass echtes Interesse an der eigentlichen Sorge besteht, nicht nur am Verkauf."
+      : "Teilweise gehört, aber nicht wirklich verstanden — die Antwort war fachlich okay, hat aber nicht auf das eigentliche Zögern dahinter reagiert.";
+
+  const goldenPath = `1) Worum ging es wirklich: „${objectionText}“ ist selten das ganze Bild — dahinter steckt oft Unsicherheit, nicht nur der genannte Punkt. 2) Was fehlte: eine Rückfrage, die herausfindet, was konkret dahintersteckt, bevor man reagiert. 3) Welche Frage geholfen hätte: eine offene, konkrete Frage zum eigentlichen Zögern statt einer schnellen Antwort auf die Oberfläche. 4) Warum: Menschen öffnen sich eher, wenn sie merken, dass ihnen zugehört wird, statt dass ihnen etwas verkauft wird.`;
+
   return {
     good,
     improve,
     focus,
     recommendedExercise: `Trainiere als nächstes gezielt „${focus}“ — z.B. mit 3 weiteren Einwänden aus derselben Kategorie.`,
+    customerFeltReport,
+    goldenPath,
   };
 }

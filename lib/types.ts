@@ -44,6 +44,36 @@ export interface SessionFeedback {
   improve: string[];
   focus: string;
   recommendedExercise: string;
+  /** What the customer was actually feeling underneath the surface objection. */
+  customerFeltReport: string;
+  /** Process-based explanation of how a strong closer would have approached
+   *  this moment — the reasoning, not a copyable line to memorize. */
+  goldenPath: string;
+}
+
+export interface CustomerPersona {
+  name: string;
+  archetype: string;
+  ageContext: string;
+  communicationStyle: string;
+  decisionMakingStyle: string;
+  patienceLevel: "niedrig" | "mittel" | "hoch";
+  /** Private context the customer knows but won't volunteer unprompted —
+   *  the seller has to earn it through good discovery questions. */
+  hiddenGoal: string;
+  hiddenPain: string;
+  hiddenPreviousAttempt: string;
+  hiddenRealConcern: string;
+}
+
+export interface CustomerEmotionalState {
+  trust: number;
+  interest: number;
+  skepticism: number;
+  frustration: number;
+  defensiveness: number;
+  urgency: number;
+  confusion: number;
 }
 
 export interface TrainingSession {

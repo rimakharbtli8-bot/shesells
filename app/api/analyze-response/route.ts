@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { FEATURES } from "@/lib/config";
 import { analyzeReply, buildFeedback, overallScore, scoreReply } from "@/lib/ai/scoring";
 import { CLAUDE_MODEL, getClaudeClient } from "@/lib/ai/claudeClient";
-import type { Difficulty, ScoreBreakdown } from "@/lib/types";
+import type { ChatMessage, Difficulty, ScoreBreakdown } from "@/lib/types";
 
 const DIMENSION_KEYS = [
   "understanding",
@@ -56,18 +56,33 @@ const SCORE_TOOL = {
         type: "string",
         description: "Eine konkrete, kurze Übungsempfehlung für die nächste Trainingseinheit.",
       },
+      questionType: {
+        type: "string",
+        enum: ["open", "closed", "leading", "clarifying", "emotional", "discovery", "qualification", "none"],
+        description: "Art der wichtigsten Frage in der Antwort, falls eine gestellt wurde. 'none' wenn keine Frage gestellt wurde.",
+      },
+      customerFeltReport: {
+        type: "string",
+        description:
+          "Ein bis zwei Sätze: Was der Kunde bei dieser Antwort WIRKLICH gefühlt hat, jenseits der Oberfläche des Einwands — die 'Truth Layer'-Einschätzung, die dem Verkäufer sonst verborgen bleibt.",
+      },
+      goldenPath: {
+        type: "string",
+        description:
+          "Wie ein sehr erfahrener Verkäufer an dieser Stelle vorgegangen wäre — als kurzer, nummerierter Denkprozess (1. Was das eigentliche Problem war, 2. welche Information fehlte, 3. welche Frage geholfen hätte, 4. warum). Kein auswendig lernbarer Musterspruch, sondern eine Erklärung des Denkwegs.",
+      },
     },
-    required: [...DIMENSION_KEYS, "good", "improve", "focusDimension", "recommendedExercise"],
+    required: [...DIMENSION_KEYS, "good", "improve", "focusDimension", "recommendedExercise", "questionType", "customerFeltReport", "goldenPath"],
     additionalProperties: false,
   },
   strict: true,
 };
 
-const SCORE_SYSTEM_PROMPT = `Du bist ein erfahrener, ehrlicher Sales-Coach, der Antworten aus Einwandbehandlungs-Trainings bewertet.
+const SCORE_SYSTEM_PROMPT = `Du bist ein erfahrener, ehrlicher Sales-Coach, der Antworten aus Einwandbehandlungs-Trainings bewertet. Du siehst dabei mehr als der Verkäufer selbst — auch die Ebene, die im Gespräch nicht ausgesprochen wurde.
 
 Bewerte STRENG und REALISTISCH — nicht generös. Eine kurze, ausweichende oder inhaltsleere Antwort verdient niedrige Werte (unter 40). Eine wirklich starke, konkrete, empathische Antwort mit guter Fragetechnik verdient hohe Werte (80+). Die meisten Antworten sind irgendwo dazwischen und die sieben Dimensionen müssen NICHT alle ähnlich hoch oder niedrig sein — eine Antwort kann z.B. empathisch, aber strukturell schwach sein.
 
-Beziehe dich in "good" und "improve" konkret auf das, was der Verkäufer tatsächlich gesagt hat (nicht auf generische Ratschläge). Bewerte ausschließlich über das Tool "score_reply".`;
+Denke bei "customerFeltReport" in drei Ebenen: Was der Kunde gesagt hat, was er damit vermutlich gemeint hat, und was wahrscheinlich wirklich dahintersteckt (Angst, Unsicherheit, frühere schlechte Erfahrung, Zeitdruck, Überforderung — nicht automatisch das offensichtlichste). Beziehe dich in "good" und "improve" konkret auf das, was der Verkäufer tatsächlich gesagt hat (nicht auf generische Ratschläge). Bewerte ausschließlich über das Tool "score_reply".`;
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -76,15 +91,26 @@ export async function POST(request: Request) {
     difficulty,
     spokenSeconds,
     objectionText,
-  }: { text: string; difficulty: Difficulty; spokenSeconds?: number; objectionText?: string } = body;
+    transcript,
+  }: {
+    text: string;
+    difficulty: Difficulty;
+    spokenSeconds?: number;
+    objectionText?: string;
+    transcript?: ChatMessage[];
+  } = body;
 
   const client = FEATURES.useRealLLM ? getClaudeClient() : null;
 
   if (client) {
     try {
+      const historyText = (transcript ?? [])
+        .map((m) => `${m.role === "user" ? "Verkäufer" : "Kunde"}: ${m.text}`)
+        .join("\n");
+
       const userContent = `Einwand des Kunden: "${objectionText ?? "Allgemeines Verkaufsgespräch"}"
 Schwierigkeitsgrad: ${difficulty}
-${spokenSeconds ? `Gesprochene Länge der Antwort: ${spokenSeconds} Sekunden.\n` : ""}Antwort des Verkäufers (wörtlich): "${text}"`;
+${historyText ? `Bisheriger Gesprächsverlauf:\n${historyText}\n\n` : ""}${spokenSeconds ? `Gesprochene Länge der neuen Antwort: ${spokenSeconds} Sekunden.\n` : ""}Neue Antwort des Verkäufers (wörtlich, das ist die zu bewertende Antwort): "${text}"`;
 
       const response = await client.messages.create({
         model: CLAUDE_MODEL,
@@ -118,9 +144,18 @@ ${spokenSeconds ? `Gesprochene Länge der Antwort: ${spokenSeconds} Sekunden.\n`
             typeof input.recommendedExercise === "string"
               ? input.recommendedExercise
               : `Trainiere gezielt „${FOCUS_LABELS[focusKey] ?? "Einwandverständnis"}“ mit weiteren Einwänden.`,
+          customerFeltReport:
+            typeof input.customerFeltReport === "string" ? input.customerFeltReport : "Keine Einschätzung verfügbar.",
+          goldenPath: typeof input.goldenPath === "string" ? input.goldenPath : "Keine Analyse verfügbar.",
         };
 
-        return NextResponse.json({ breakdown, analysis, feedback, score: overallScore(breakdown) });
+        return NextResponse.json({
+          breakdown,
+          analysis,
+          feedback,
+          score: overallScore(breakdown),
+          questionType: typeof input.questionType === "string" ? input.questionType : "none",
+        });
       }
     } catch (err) {
       console.error("Claude analyze-response call failed, falling back to mock engine:", err);
