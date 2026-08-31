@@ -145,37 +145,43 @@ function SimulationContent() {
     setCallError(null);
 
     try {
-      const analyzeRes = await fetch("/api/analyze-response", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: trimmed,
-          difficulty,
-          spokenSeconds: seconds,
-          objectionText: objection?.text,
-          transcript: priorTranscript,
+      // These two calls don't depend on each other's result — run them
+      // concurrently instead of back-to-back, which was needlessly
+      // doubling the "customer is thinking" wait on every turn.
+      const [analyzeRes, customerRes] = await Promise.all([
+        fetch("/api/analyze-response", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: trimmed,
+            difficulty,
+            spokenSeconds: seconds,
+            objectionText: objection?.text,
+            transcript: priorTranscript,
+          }),
         }),
-      });
+        fetch("/api/customer-response", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "reply",
+            trainingType,
+            difficulty,
+            objectionSlug,
+            userReply: trimmed,
+            turn,
+            transcript: priorTranscript,
+            persona: personaRef.current,
+            emotionalState: emotionalStateRef.current,
+          }),
+        }),
+      ]);
+
       if (!analyzeRes.ok) throw new Error(`analyze-response returned ${analyzeRes.status}`);
       const analyzeData = await analyzeRes.json();
       if (!analyzeData?.breakdown) throw new Error("analyze-response missing breakdown");
       breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
 
-      const customerRes = await fetch("/api/customer-response", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "reply",
-          trainingType,
-          difficulty,
-          objectionSlug,
-          userReply: trimmed,
-          turn,
-          transcript: priorTranscript,
-          persona: personaRef.current,
-          emotionalState: emotionalStateRef.current,
-        }),
-      });
       if (!customerRes.ok) throw new Error(`customer-response returned ${customerRes.status}`);
       const customerData = await customerRes.json();
       if (!customerData?.text) throw new Error("customer-response missing text");
