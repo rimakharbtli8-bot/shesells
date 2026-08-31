@@ -27,7 +27,9 @@ const RESPOND_TOOL = {
       },
     },
     required: ["reply", "resistance", "isClosing"],
+    additionalProperties: false,
   },
+  strict: true,
 };
 
 function buildSystemPrompt(trainingType: TrainingTypeId, difficulty: Difficulty, objectionText?: string): string {
@@ -81,6 +83,10 @@ export async function POST(request: Request) {
   if (client) {
     try {
       const systemPrompt = buildSystemPrompt(trainingType, difficulty, objection?.text);
+      // The transcript's very first entry is the customer's own opening
+      // line (role "customer" -> mapped to "assistant"). The Anthropic API
+      // requires the message array to start with a "user" turn, so a
+      // synthetic starter message always leads reply-mode history.
       const history = (transcript ?? [])
         .filter((m) => m.role === "user" || m.role === "customer")
         .map((m) => ({
@@ -91,6 +97,7 @@ export async function POST(request: Request) {
       const messages =
         mode === "reply" && userReply
           ? [
+              { role: "user" as const, content: "[Anruf beginnt. Du bist der Kunde.]" },
               ...history,
               {
                 role: "user" as const,
@@ -113,12 +120,17 @@ export async function POST(request: Request) {
 
       const toolUse = response.content.find((b) => b.type === "tool_use");
       if (toolUse && toolUse.type === "tool_use") {
-        const input = toolUse.input as { reply: string; resistance: number; isClosing: boolean };
+        const input = toolUse.input as { reply?: string; resistance?: number; isClosing?: boolean };
+        if (!input.reply || typeof input.reply !== "string") {
+          throw new Error("Claude tool_use response missing 'reply'");
+        }
         return NextResponse.json({
           text: input.reply,
           resistance:
-            mode === "opening" ? getStartingResistance(difficulty) : Math.max(0, Math.min(100, Math.round(input.resistance))),
-          isClosing: mode === "opening" ? false : input.isClosing,
+            mode === "opening"
+              ? getStartingResistance(difficulty)
+              : Math.max(0, Math.min(100, Math.round(input.resistance ?? resistance ?? 50))),
+          isClosing: mode === "opening" ? false : Boolean(input.isClosing),
           quality: null,
         });
       }

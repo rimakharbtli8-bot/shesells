@@ -39,6 +39,7 @@ function SimulationContent() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [levelUp, setLevelUp] = useState<{ level: number; name: string } | null>(null);
   const [typedFallback, setTypedFallback] = useState("");
+  const [callError, setCallError] = useState<string | null>(null);
 
   const [resultScore, setResultScore] = useState(0);
   const [resultBreakdown, setResultBreakdown] = useState<ScoreBreakdown | null>(null);
@@ -77,15 +78,24 @@ function SimulationContent() {
   async function answerCall() {
     callStartRef.current = Date.now();
     setPhase("connecting");
-    const res = await fetch("/api/customer-response", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "opening", trainingType, difficulty, objectionSlug }),
-    });
-    const data = await res.json();
-    const opening: ChatMessage = { id: `m_${Date.now()}`, role: "customer", text: data.text, timestamp: Date.now() };
-    transcriptRef.current = [opening];
-    speakThenListen(data.text);
+    setCallError(null);
+    try {
+      const res = await fetch("/api/customer-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "opening", trainingType, difficulty, objectionSlug }),
+      });
+      if (!res.ok) throw new Error(`customer-response returned ${res.status}`);
+      const data = await res.json();
+      if (!data?.text) throw new Error("customer-response missing text");
+      const opening: ChatMessage = { id: `m_${Date.now()}`, role: "customer", text: data.text, timestamp: Date.now() };
+      transcriptRef.current = [opening];
+      speakThenListen(data.text);
+    } catch (err) {
+      console.error("answerCall failed:", err);
+      setCallError("Verbindung fehlgeschlagen. Bitte nochmal versuchen.");
+      setPhase("incoming");
+    }
   }
 
   function speakThenListen(text: string) {
@@ -113,47 +123,59 @@ function SimulationContent() {
     transcriptRef.current = [...priorTranscript, userMsg];
     setPhase("thinking");
     setCaption("");
+    setCallError(null);
 
-    const analyzeRes = await fetch("/api/analyze-response", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: trimmed, difficulty, spokenSeconds: seconds, objectionText: objection?.text }),
-    });
-    const analyzeData = await analyzeRes.json();
-    breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
+    try {
+      const analyzeRes = await fetch("/api/analyze-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: trimmed, difficulty, spokenSeconds: seconds, objectionText: objection?.text }),
+      });
+      if (!analyzeRes.ok) throw new Error(`analyze-response returned ${analyzeRes.status}`);
+      const analyzeData = await analyzeRes.json();
+      if (!analyzeData?.breakdown) throw new Error("analyze-response missing breakdown");
+      breakdownsRef.current = [...breakdownsRef.current, analyzeData.breakdown];
 
-    const customerRes = await fetch("/api/customer-response", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "reply",
-        trainingType,
-        difficulty,
-        objectionSlug,
-        userReply: trimmed,
-        resistance,
-        turn,
-        transcript: priorTranscript,
-      }),
-    });
-    const customerData = await customerRes.json();
+      const customerRes = await fetch("/api/customer-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "reply",
+          trainingType,
+          difficulty,
+          objectionSlug,
+          userReply: trimmed,
+          resistance,
+          turn,
+          transcript: priorTranscript,
+        }),
+      });
+      if (!customerRes.ok) throw new Error(`customer-response returned ${customerRes.status}`);
+      const customerData = await customerRes.json();
+      if (!customerData?.text) throw new Error("customer-response missing text");
 
-    const customerMsg: ChatMessage = {
-      id: `m_${Date.now()}_c`,
-      role: "customer",
-      text: customerData.text,
-      timestamp: Date.now(),
-    };
-    transcriptRef.current = [...transcriptRef.current, customerMsg];
-    setResistance(customerData.resistance);
-    setTurn((t) => t + 1);
+      const customerMsg: ChatMessage = {
+        id: `m_${Date.now()}_c`,
+        role: "customer",
+        text: customerData.text,
+        timestamp: Date.now(),
+      };
+      transcriptRef.current = [...transcriptRef.current, customerMsg];
+      setResistance(customerData.resistance);
+      setTurn((t) => t + 1);
 
-    if (customerData.isClosing) {
-      setCaption(customerData.text);
-      setPhase("ai-speaking");
-      tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback));
-    } else {
-      speakThenListen(customerData.text);
+      if (customerData.isClosing) {
+        setCaption(customerData.text);
+        setPhase("ai-speaking");
+        tts.speak(customerData.text, () => finalizeSession(analyzeData.feedback));
+      } else {
+        speakThenListen(customerData.text);
+      }
+    } catch (err) {
+      console.error("handleUtterance failed:", err);
+      setCallError("Da ist etwas schiefgelaufen. Sprich einfach nochmal.");
+      setPhase("listening");
+      if (!isMutedRef.current) callVoice.start();
     }
   }
 
@@ -319,6 +341,7 @@ function SimulationContent() {
         </div>
 
         {callVoice.error && <p className="text-xs text-danger">{callVoice.error}</p>}
+        {callError && <p className="text-xs text-danger">{callError}</p>}
 
         {needsTypedFallback && (
           <div className="flex w-full gap-2">

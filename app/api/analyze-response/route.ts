@@ -58,7 +58,9 @@ const SCORE_TOOL = {
       },
     },
     required: [...DIMENSION_KEYS, "good", "improve", "focusDimension", "recommendedExercise"],
+    additionalProperties: false,
   },
+  strict: true,
 };
 
 const SCORE_SYSTEM_PROMPT = `Du bist ein erfahrener, ehrlicher Sales-Coach, der Antworten aus Einwandbehandlungs-Trainings bewertet.
