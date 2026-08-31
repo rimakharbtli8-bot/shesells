@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { FEATURES } from "@/lib/config";
 import { generateCustomerTurn, getOpeningLine } from "@/lib/ai/mockCustomer";
 import { getObjectionBySlug } from "@/lib/data/objections";
-import { CLAUDE_MODEL, getClaudeClient } from "@/lib/ai/claudeClient";
+import { CUSTOMER_MODEL, getClaudeClient } from "@/lib/ai/claudeClient";
 import { deriveResistance, generatePersona, getInitialEmotionalState } from "@/lib/ai/persona";
 import type { ChatMessage, CustomerEmotionalState, CustomerPersona, Difficulty, TrainingTypeId } from "@/lib/types";
 
@@ -217,8 +217,8 @@ export async function POST(request: Request) {
         : [{ role: "user" as const, content: "[Anruf beginnt. Formuliere deinen ersten Satz als Kunde.]" }];
 
       const response = await client.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
+        model: CUSTOMER_MODEL,
+        max_tokens: 512,
         system: [
           { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
           { type: "text", text: systemState },

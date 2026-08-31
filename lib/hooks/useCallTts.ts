@@ -22,6 +22,11 @@ export function useCallTts() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const germanVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  // Once the real TTS provider fails once (quota, rate limit, outage), stop
+  // retrying it for the rest of this call — flip-flopping between a real
+  // voice and the browser fallback mid-conversation is more jarring than
+  // just staying on one consistent (even if lesser) voice throughout.
+  const providerDownRef = useRef(false);
   const browserTtsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
   useEffect(() => {
@@ -87,6 +92,10 @@ export function useCallTts() {
   const speak = useCallback(
     async (text: string, onEnd?: () => void, gender?: CustomerPersona["gender"]) => {
       cleanupAudio();
+      if (providerDownRef.current) {
+        speakWithBrowser(text, gender, onEnd);
+        return;
+      }
       try {
         const res = await fetch("/api/text-to-speech", {
           method: "POST",
@@ -109,10 +118,12 @@ export function useCallTts() {
         audio.onerror = () => {
           setIsSpeaking(false);
           cleanupAudio();
+          providerDownRef.current = true;
           speakWithBrowser(text, gender, onEnd);
         };
         await audio.play();
       } catch {
+        providerDownRef.current = true;
         speakWithBrowser(text, gender, onEnd);
       }
     },

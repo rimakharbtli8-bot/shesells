@@ -2,9 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 
 // Imported only from app/api/*/route.ts handlers — never from client components.
 
-// Sonnet, not Opus: this model plays the customer live on every call turn,
-// so response latency matters as much as reasoning depth here.
-export const CLAUDE_MODEL = "claude-sonnet-5";
+// The customer's voice runs on every single call turn, so it's on the
+// fastest model — a slow "thinking" pause there is felt immediately.
+// Scoring/feedback (analyze-response) runs in the background and never
+// blocks the conversation, so it can afford the stronger, slower model.
+export const CUSTOMER_MODEL = "claude-haiku-4-5-20251001";
+export const SCORE_MODEL = "claude-sonnet-5";
 
 let cachedClient: Anthropic | null = null;
 

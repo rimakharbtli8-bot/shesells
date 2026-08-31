@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { FEATURES } from "@/lib/config";
 import { analyzeReply, buildFeedback, overallScore, scoreReply } from "@/lib/ai/scoring";
-import { CLAUDE_MODEL, getClaudeClient } from "@/lib/ai/claudeClient";
+import { SCORE_MODEL, getClaudeClient } from "@/lib/ai/claudeClient";
 import type { ChatMessage, Difficulty, ScoreBreakdown } from "@/lib/types";
 
 const DIMENSION_KEYS = [
@@ -113,7 +113,7 @@ Schwierigkeitsgrad: ${difficulty}
 ${historyText ? `Bisheriger Gesprächsverlauf:\n${historyText}\n\n` : ""}${spokenSeconds ? `Gesprochene Länge der neuen Antwort: ${spokenSeconds} Sekunden.\n` : ""}Neue Antwort des Verkäufers (wörtlich, das ist die zu bewertende Antwort): "${text}"`;
 
       const response = await client.messages.create({
-        model: CLAUDE_MODEL,
+        model: SCORE_MODEL,
         max_tokens: 1024,
         system: [{ type: "text", text: SCORE_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
         tools: [SCORE_TOOL],
