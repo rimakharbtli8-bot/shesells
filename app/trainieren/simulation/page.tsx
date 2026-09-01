@@ -68,6 +68,7 @@ function SimulationContent() {
   const [resultScore, setResultScore] = useState(0);
   const [resultBreakdown, setResultBreakdown] = useState<ScoreBreakdown | null>(null);
   const [resultFeedback, setResultFeedback] = useState<SessionFeedback | null>(null);
+  const [resultTranscript, setResultTranscript] = useState<ChatMessage[]>([]);
   const [xpEarnedDisplay, setXpEarnedDisplay] = useState(0);
 
   const breakdownsRef = useRef<ScoreBreakdown[]>([]);
@@ -282,6 +283,7 @@ function SimulationContent() {
     setResultScore(score);
     setResultBreakdown(avgBreakdown);
     setResultFeedback(lastFeedback);
+    setResultTranscript(transcriptRef.current);
     setXpEarnedDisplay(session.xpEarned);
     setPhase("result");
   }
@@ -337,6 +339,7 @@ function SimulationContent() {
         score={resultScore}
         breakdown={resultBreakdown}
         feedback={resultFeedback}
+        transcript={resultTranscript}
         xpEarned={xpEarnedDisplay}
         levelUp={levelUp}
         onRetry={restart}
@@ -466,6 +469,7 @@ function ResultScreen({
   score,
   breakdown,
   feedback,
+  transcript,
   xpEarned,
   levelUp,
   onRetry,
@@ -473,6 +477,7 @@ function ResultScreen({
   score: number;
   breakdown: ScoreBreakdown;
   feedback: SessionFeedback;
+  transcript: ChatMessage[];
   xpEarned: number;
   levelUp: { level: number; name: string } | null;
   onRetry: () => void;
@@ -545,6 +550,29 @@ function ResultScreen({
         <h2 className="mb-2 text-sm font-semibold text-ink">So hätte ein sehr guter Closer reagiert</h2>
         <p className="text-sm leading-relaxed text-ink-soft">{feedback.goldenPath}</p>
       </Card>
+
+      {transcript.length > 0 && (
+        <Card>
+          <h2 className="mb-3 text-sm font-semibold text-ink">Gesprächs-Transkript</h2>
+          <div className="flex flex-col gap-2.5">
+            {transcript.map((msg) => (
+              <div key={msg.id} className={cn("flex flex-col gap-0.5", msg.role === "user" ? "items-end" : "items-start")}>
+                <span className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+                  {msg.role === "user" ? "Du" : "Kunde"}
+                </span>
+                <p
+                  className={cn(
+                    "max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed",
+                    msg.role === "user" ? "bg-ink text-white" : "bg-sand text-ink-soft",
+                  )}
+                >
+                  {msg.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="!border-accent/30 !bg-accent-soft">
         <h2 className="mb-1 text-sm font-semibold text-accent-dark">Dein nächster Fokus</h2>
