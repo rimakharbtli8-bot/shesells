@@ -27,8 +27,15 @@ interface AppState {
   resetProgress: () => void;
 }
 
+// Calendar day in the user's own timezone, not UTC — toISOString() would
+// shift a training done shortly after local midnight (very common for
+// evening training in a UTC+1/+2 timezone like Germany) onto the
+// previous UTC day, silently breaking the streak count.
 function todayKey(d: Date = new Date()): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function computeStreak(lastISODate: string | null, currentStreak: number): number {
