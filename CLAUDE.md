@@ -89,6 +89,18 @@ Society, The Closers Guild, The Slow Close Society, Warmline.
 Der App-/Produktname "CLOSER" kann unabhängig vom Academy-Namen bestehen
 bleiben.
 
+**Logo — Richtung entschieden:** Symbol ist ein **Schlüssel** (Bart als
+Ring, gerader Schaft, zwei Zähne) — klassische, sofort verständliche
+Closing-Metapher ("Schlüssel zum Abschluss"), braucht keine Erklärung und
+bleibt auch winzig (App-Icon/Profilbild) erkennbar. Farbwelt: warmes
+Off-White (#F6F2EA), tiefes Anthrazit (#1E1B17), gedämpftes Gold (#A6813C)
+als Akzent. Typografie: 'Libre Caslon Display' (Wordmark/Headlines),
+'Archivo' (Fließtext/Labels) — bewusst nicht Inter/Roboto/Arial/Fraunces.
+Verworfene Richtungen (zur Doku): reines Wordmark ohne Symbol, Monogramm-
+Siegel, abstraktes Zwei-Kreise-Symbol, Gilden-Ringsiegel, Torbogen-Symbol,
+geschwungene Aufstiegs-Linie. Nächster Schritt: finales Schlüssel-Symbol
+zusammen mit Wordmark zu einem sauberen Lockup ausarbeiten.
+
 ## Wie diese Datei genutzt werden soll
 
 Bei zukünftigen Sessions: diese Positionierung als gesetzt behandeln, nicht
