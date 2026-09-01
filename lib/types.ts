@@ -115,6 +115,29 @@ export interface Challenge {
   metric: "objections_price" | "streak_days" | "score_85_plus" | "sessions_completed";
 }
 
+export type PlaybookModuleId =
+  | "angebot"
+  | "funnel"
+  | "content"
+  | "verkaufsgespraech"
+  | "launch";
+
+export interface PlaybookModule {
+  id: PlaybookModuleId;
+  slug: string;
+  order: number;
+  icon: LucideIcon;
+  title: string;
+  summary: string;
+  /** Was man konkret braucht, bevor man anfängt — keine Tools, die man nicht sofort nutzt. */
+  whatYouNeed: string[];
+  steps: string[];
+  mistakes: string[];
+  example: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
 export type ExperienceLevel = "anfaenger" | "erfahrung" | "closer";
 
 export type TrainingGoal =

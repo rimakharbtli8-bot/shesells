@@ -4,6 +4,7 @@ import {
   BarChart3,
   Trophy,
   BookOpen,
+  Compass,
   Users,
   Settings,
   type LucideIcon,
@@ -21,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/fortschritt", label: "Fortschritt", icon: BarChart3 },
   { href: "/rangliste", label: "Rangliste", icon: Trophy },
   { href: "/einwaende", label: "Einwand-Bibliothek", icon: BookOpen },
+  { href: "/leitfaden", label: "Leitfaden", icon: Compass },
   { href: "/community", label: "Community", icon: Users },
   { href: "/einstellungen", label: "Einstellungen", icon: Settings },
 ];

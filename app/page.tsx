@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, ArrowRight, Sparkles } from "lucide-react";
+import { Flame, ArrowRight, Sparkles, Compass } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -147,6 +147,21 @@ export default function DashboardPage() {
               <div className="text-sm font-semibold text-ink">Mein KI-Coach</div>
               <div className="mt-0.5 text-xs text-ink-muted">
                 Frag nach, warum eine Antwort nicht funktioniert hat.
+              </div>
+            </div>
+          </div>
+          <ArrowRight size={18} className="shrink-0 text-ink-muted" />
+        </Card>
+      </Link>
+
+      <Link href="/leitfaden">
+        <Card className="flex items-center justify-between gap-3 transition-shadow hover:shadow-card">
+          <div className="flex items-center gap-3">
+            <Compass size={18} className="text-accent" />
+            <div>
+              <div className="text-sm font-semibold text-ink">Digitale Produkte verkaufen</div>
+              <div className="mt-0.5 text-xs text-ink-muted">
+                Vom Angebot zum Funnel zum ersten Verkauf — konkret, ohne Buzzwords.
               </div>
             </div>
           </div>
