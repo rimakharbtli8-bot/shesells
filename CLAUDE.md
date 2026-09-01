@@ -1,8 +1,9 @@
-# Projektkontext: Remote-Closing-Academy für Frauen
+# Projektkontext: Women's Sales Society (Remote-Closing-Academy für Frauen)
 
 Dieses Repo enthält aktuell die App "CLOSER" (Verkaufs-/Einwandtraining). Die
 Vision der Gründerin geht darüber hinaus: eine eigene Remote-Closing-Academy
-im deutschsprachigen Raum, mit Fokus auf Frauen.
+im deutschsprachigen Raum, mit Fokus auf Frauen — Arbeitsname **"Women's
+Sales Society"** (siehe Namensfrage unten).
 
 ## Positionierung (festgelegt, nicht mehr zur Diskussion — nur verfeinern)
 
@@ -66,23 +67,24 @@ Muster meiden, auch in Abwandlungen.
   Deutschland ggf. Fernunterrichtsschutzgesetz (FernUSG) prüfen lassen,
   bevor die Academy groß launcht
 
-**Namensfrage:** "shesells" als Academy-Name ist bereits von Shelby Sapp
-belegt, ebenso "CloseHer"/"CloseHer Academy"/"The Closer Society" (siehe
-Wettbewerbslandschaft oben) — das komplette "She/Her + Close(r/ing) +
-Academy/Society"-Muster ist durch und wird nicht weiterverfolgt.
+**Namensfrage — ENTSCHIEDEN:** Academy-Name ist **"Women's Sales Society"**
+(Schreibweise/Handle: `womenssalessociety`). Websuche zu Recherchezeitpunkt
+(September 2026) zeigte keine existierende Academy/Coaching-Marke oder
+aktiven Social-Media-Account mit diesem Namen — einzige inhaltliche Nachbarn
+sind "Women in Sales" und "WISE (Women In Sales Everywhere)", beides
+Corporate-Networking-Communities, keine Trainings-/Coaching-Marken, also
+klar unterscheidbar. Keine formale Markenrecherche (DPMA/USPTO) durchgeführt
+— das vor dem eigentlichen Launch noch nachholen.
 
-Recherchiert und aktuell frei erscheinend (Stand September 2026, grobe
-Websuche, keine formale Markenrecherche):
-- **The Closeress Society** — feminisiert "Closer" direkt, eigenständig
-- **The Grace Society** — im Sales-/Coaching-Kontext ungenutzt
-- **The Rapport Society** — "Rapport" ist ein echter Sales-Fachbegriff
-  (Beziehung/Vertrauen aufbauen), passt inhaltlich sehr gut, im
-  Coaching-Kontext ungenutzt
-- **The Resonance Society** — ungenutzt im Sales-/Coaching-Bereich (nur
-  fachfremde Treffer wie Physik-Bildung)
-
-Vorsicht bei **"Attune Society"** — existiert bereits als spirituelles
-Life-Coaching-Angebot für Frauen (attunesociety.com), zu nah dran.
+Davor geprüfte und verworfene Kandidaten (zur Doku, nicht erneut vorschlagen):
+"shesells" (Shelby Sapp), "CloseHer"/"CloseHer Academy"/"The Closer Society"
+(komplettes "She/Her + Close(r/ing) + Academy/Society"-Muster durch),
+"Women Who Sell"/"GirlzWhoSell", "Sales Society" (Instagram besetzt),
+"Dealmaker"-Varianten (mehrfach besetzt), "The Closing Circle" (Domain
+besetzt, branchenfremd), "Attune Society" (zu nah an bestehender
+Frauen-Coaching-Marke). Noch ungenutzt, aber nicht mehr gebraucht: The
+Closeress Society, The Grace Society, The Rapport Society, The Resonance
+Society, The Closers Guild, The Slow Close Society, Warmline.
 
 Der App-/Produktname "CLOSER" kann unabhängig vom Academy-Namen bestehen
 bleiben.
