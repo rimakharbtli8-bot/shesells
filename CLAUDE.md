@@ -26,6 +26,34 @@ arbeiten wollen — nicht "Frauen" als reines Label, sondern weil ein echter
 Bedarf besteht: andere Vorbilder, ein Trainingsstil ohne Druck, ein
 geschützter Raum zum Üben.
 
+## Wettbewerbslandschaft (Stand: Recherche September 2026)
+
+Wichtige Korrektur einer ursprünglichen Annahme: "Remote Closing Academy nur
+für Frauen" ist **kein unbesetzter Markt** — weder international noch im
+DACH-Raum. Das heißt nicht, dass die Idee falsch ist, sondern dass "für
+Frauen" allein nicht mehr als Differenzierung reicht.
+
+**US-Markt (stark besetzt):** She Sells Academy (Shelby Sapp, 129K Follower),
+CloseHer Academy, closedher.com ("CloseHer" von Valentina Murra — wirbt
+explizit mit "feminine power statt pushy Verkauf"), Her Closing Academy, She
+Closes Academy, Closer Babes, The Salesgirls.
+
+**DACH-Markt (auch schon besetzt, nicht mehr "leer"):** FEM Closing Academy
+(fem-closing-academy.de — Positionierung "feminine Verkaufsfähigkeiten, aus
+Liebe handeln", **inhaltlich nah an unserer eigenen Positionierung**),
+Female Closer Academy, Her Closing Academy (deutsche Version), Closer
+Academy mit eigenem Frauen-Sub-Brand.
+
+**Konsequenz für die Positionierung:** Die eigentliche Differenzierung ist
+nicht "für Frauen", sondern die **konkrete persönliche Geschichte und der
+Jäger-vs-Verbindung-Mechanismus** (siehe Kernbeobachtung oben) — das sagt
+so noch niemand sonst in dieser Präzision. Content und Positionierung sollten
+stärker darauf einzahlen als auf das reine Frauen-Label.
+
+**Namens-Konsequenz:** Das Muster "She/Her + Close(r/ing) + Academy/Society"
+ist komplett durch (siehe oben) — bei zukünftigen Namensvorschlägen dieses
+Muster meiden, auch in Abwandlungen.
+
 **Abgrenzung zu "Guru"-Marketing (wichtig, nicht verwässern):**
 - Prozess zeigen statt Ergebnis behaupten (echte Rollenspiel-Ausschnitte,
   keine Kontoauszüge/Lifestyle-Content)
@@ -39,9 +67,25 @@ geschützter Raum zum Üben.
   bevor die Academy groß launcht
 
 **Namensfrage:** "shesells" als Academy-Name ist bereits von Shelby Sapp
-belegt — ein neuer, eigenständiger Name wird noch gesucht (siehe
-Chatverlauf für Vorschläge). Der App-/Produktname "CLOSER" kann unabhängig
-vom Academy-Namen bestehen bleiben.
+belegt, ebenso "CloseHer"/"CloseHer Academy"/"The Closer Society" (siehe
+Wettbewerbslandschaft oben) — das komplette "She/Her + Close(r/ing) +
+Academy/Society"-Muster ist durch und wird nicht weiterverfolgt.
+
+Recherchiert und aktuell frei erscheinend (Stand September 2026, grobe
+Websuche, keine formale Markenrecherche):
+- **The Closeress Society** — feminisiert "Closer" direkt, eigenständig
+- **The Grace Society** — im Sales-/Coaching-Kontext ungenutzt
+- **The Rapport Society** — "Rapport" ist ein echter Sales-Fachbegriff
+  (Beziehung/Vertrauen aufbauen), passt inhaltlich sehr gut, im
+  Coaching-Kontext ungenutzt
+- **The Resonance Society** — ungenutzt im Sales-/Coaching-Bereich (nur
+  fachfremde Treffer wie Physik-Bildung)
+
+Vorsicht bei **"Attune Society"** — existiert bereits als spirituelles
+Life-Coaching-Angebot für Frauen (attunesociety.com), zu nah dran.
+
+Der App-/Produktname "CLOSER" kann unabhängig vom Academy-Namen bestehen
+bleiben.
 
 ## Wie diese Datei genutzt werden soll
 
