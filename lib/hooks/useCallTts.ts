@@ -96,6 +96,12 @@ export function useCallTts() {
         speakWithBrowser(text, gender, onEnd);
         return;
       }
+
+      // Fetching the line from our own TTS route failing means ElevenLabs
+      // itself is actually down/unconfigured — that's the real "provider
+      // down" signal, worth sticking to the browser voice for the rest of
+      // the call.
+      let blob: Blob;
       try {
         const res = await fetch("/api/text-to-speech", {
           method: "POST",
@@ -103,27 +109,39 @@ export function useCallTts() {
           body: JSON.stringify({ text, gender }),
         });
         if (!res.ok) throw new Error("tts-unavailable");
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        objectUrlRef.current = url;
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onplay = () => setIsSpeaking(true);
-        audio.onended = () => {
-          setIsSpeaking(false);
-          cleanupAudio();
-          onEnd?.();
-        };
-        audio.onerror = () => {
-          setIsSpeaking(false);
-          cleanupAudio();
-          providerDownRef.current = true;
-          speakWithBrowser(text, gender, onEnd);
-        };
-        await audio.play();
+        blob = await res.blob();
       } catch {
         providerDownRef.current = true;
+        speakWithBrowser(text, gender, onEnd);
+        return;
+      }
+
+      // We got real audio back from ElevenLabs — a failure from here on is
+      // a LOCAL playback problem (autoplay policy blocking a non-gesture
+      // play() call, a codec hiccup), not the provider's fault. Don't mark
+      // the provider down for that: it would permanently silence a working
+      // ElevenLabs voice for the rest of the call over a one-off local
+      // glitch. Just play this one line via the browser voice and let the
+      // next line try the real provider again.
+      const url = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        cleanupAudio();
+        onEnd?.();
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        cleanupAudio();
+        speakWithBrowser(text, gender, onEnd);
+      };
+      try {
+        await audio.play();
+      } catch {
+        cleanupAudio();
         speakWithBrowser(text, gender, onEnd);
       }
     },
