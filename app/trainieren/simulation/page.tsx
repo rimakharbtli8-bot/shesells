@@ -359,7 +359,10 @@ function SimulationContent() {
     result: "",
   };
 
-  const needsTypedFallback = phase === "listening" && !callVoice.isSupported;
+  // Not just "unsupported" — a supported browser whose mic access was
+  // denied (or blocked by OS/company policy) is just as stuck without a
+  // way to answer, since useCallVoice stops retrying on that class of error.
+  const needsTypedFallback = phase === "listening" && (!callVoice.isSupported || Boolean(callVoice.error));
 
   return (
     <div className="flex h-[calc(100vh-6.5rem)] flex-col items-center justify-between py-6 lg:h-[calc(100vh-5rem)]">

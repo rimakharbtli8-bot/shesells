@@ -12,6 +12,13 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const SILENCE_MS = 1400;
 
+// Errors that mean voice input plain won't work this session (permission
+// denied, no mic hardware, blocked by browser/OS policy) — retrying just
+// repeats the same failure. "network" and "no-speech" are transient and
+// worth restarting for; anything in this set should stop and let the
+// caller fall back to typed input instead.
+const UNRECOVERABLE_ERRORS = new Set(["not-allowed", "permission-denied", "audio-capture", "service-not-allowed"]);
+
 interface UseCallVoiceOptions {
   /** Fires once the caller has paused for SILENCE_MS after saying something. */
   onUtterance: (text: string, seconds: number) => void;
@@ -110,6 +117,13 @@ export function useCallVoice({ onUtterance, enabled }: UseCallVoiceOptions): Use
       const code = event?.error;
       if (code && code !== "aborted" && code !== "no-speech") {
         setError(ERROR_MESSAGES[code] ?? `Fehler bei der Spracherkennung (${code}).`);
+      }
+      if (code && UNRECOVERABLE_ERRORS.has(code)) {
+        // Without this, onend below sees enabled+not-intentionally-stopped
+        // and immediately calls start() again — which fails with the same
+        // error again, forever. Mark it as if we'd stopped it ourselves so
+        // the caller's typed-fallback input is the way forward instead.
+        intentionalStopRef.current = true;
       }
     };
 
