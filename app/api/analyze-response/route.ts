@@ -31,9 +31,9 @@ const SCORE_TOOL = {
     type: "object" as const,
     properties: {
       understanding: { type: "number", description: "0-100: Wie gut hat der Verkäufer den eigentlichen Einwand verstanden und ernst genommen?" },
-      questioning: { type: "number", description: "0-100: Fragetechnik — gute offene Fragen statt sofortiger Argumentation?" },
+      questioning: { type: "number", description: "0-100: Fragetechnik — offene Fragen aus echtem Interesse statt sofortiger Argumentation? Gegenfragen nur um 'die Kontrolle zu behalten', ohne den Kunden je wirklich zu beantworten, zählen NICHT als gute Fragetechnik." },
       communication: { type: "number", description: "0-100: Klarheit, Verständlichkeit, Formulierung." },
-      empathy: { type: "number", description: "0-100: Einfühlungsvermögen gegenüber der Situation des Kunden." },
+      empathy: { type: "number", description: "0-100: Einfühlungsvermögen gegenüber der Situation des Kunden — echtes, korrektes Zusammenfassen seiner Aussagen zählt stark positiv; ihn früh auf ein Label festlegen, um ihn später darauf festzunageln, oder seinen Schmerz künstlich dramatisieren zählt negativ." },
       confidence: { type: "number", description: "0-100: Sicherheit im Ton, ohne unnötige Relativierungen wie 'vielleicht'." },
       structure: { type: "number", description: "0-100: Gesprächsstruktur, z.B. erst verstehen, dann vertiefen, dann Perspektive öffnen." },
       concision: { type: "number", description: "0-100: Prägnanz — weder zu knapp/oberflächlich noch ausschweifend." },
@@ -82,7 +82,14 @@ const SCORE_SYSTEM_PROMPT = `Du bist ein erfahrener, ehrlicher Sales-Coach, der 
 
 Bewerte STRENG und REALISTISCH — nicht generös. Eine kurze, ausweichende oder inhaltsleere Antwort verdient niedrige Werte (unter 40). Eine wirklich starke, konkrete, empathische Antwort mit guter Fragetechnik verdient hohe Werte (80+). Die meisten Antworten sind irgendwo dazwischen und die sieben Dimensionen müssen NICHT alle ähnlich hoch oder niedrig sein — eine Antwort kann z.B. empathisch, aber strukturell schwach sein.
 
-Denke bei "customerFeltReport" in drei Ebenen: Was der Kunde gesagt hat, was er damit vermutlich gemeint hat, und was wahrscheinlich wirklich dahintersteckt (Angst, Unsicherheit, frühere schlechte Erfahrung, Zeitdruck, Überforderung — nicht automatisch das offensichtlichste). Beziehe dich in "good" und "improve" konkret auf das, was der Verkäufer tatsächlich gesagt hat (nicht auf generische Ratschläge). Bewerte ausschließlich über das Tool "score_reply".`;
+Denke bei "customerFeltReport" in drei Ebenen: Was der Kunde gesagt hat, was er damit vermutlich gemeint hat, und was wahrscheinlich wirklich dahintersteckt (Angst, Unsicherheit, frühere schlechte Erfahrung, Zeitdruck, Überforderung — nicht automatisch das offensichtlichste). Beziehe dich in "good" und "improve" konkret auf das, was der Verkäufer tatsächlich gesagt hat (nicht auf generische Ratschläge). Bewerte ausschließlich über das Tool "score_reply".
+
+Wichtige Unterscheidung, die viele Bewertungen falsch machen: manche Verkaufstechniken WIRKEN geschickt und selbstsicher, sind aber manipulativ statt empathisch — bewerte diese NICHT hoch, auch wenn sie rhetorisch clever sind:
+- Den Kunden früh auf ein Label festlegen ("Sie sind also jemand, der X ist") und ihn später erkennbar an dieser eigenen Aussage festnageln, um Druck aufzubauen (Konsistenz-Falle) — das ist Manipulation, keine Gesprächsführung. Niedrige Werte bei "empathy" und "understanding", auch wenn "confidence" hoch wirkt.
+- Jede Rückfrage des Kunden nur mit einer Gegenfrage kontern, ohne je wirklich zu antworten, rein um "die Kontrolle zu behalten" — das ist ausweichend, keine gute Fragetechnik. Niedrige Werte bei "questioning", auch wenn ständig Fragen gestellt werden.
+- Emotionalen Schmerz des Kunden erkennbar künstlich aufbauschen oder dramatisieren, statt zuzuhören und wirklich zu verstehen — niedrige Werte bei "empathy".
+- Bewusst keine hilfreiche, konkrete Information geben, um den Kunden absichtlich abhängig vom Kauf zu machen, statt seine Frage ehrlich zu beantworten — niedrige Werte bei "communication" und "understanding".
+Im Gegensatz dazu verdient ECHTES aktives Zuhören hohe Werte: eine Kundenaussage korrekt und aufrichtig zusammenfassen ("Wenn ich dich richtig verstehe, ist eigentlich X dein Hauptproblem, nicht Y?"), dem Kunden dabei die Möglichkeit lassen zu korrigieren, offene Fragen aus echtem Interesse statt aus Kontrollbedürfnis, und ein gutes Rede-Verhältnis (Kunde redet deutlich mehr als der Verkäufer). Der Unterschied zwischen guter und manipulativer Technik liegt in der Absicht dahinter, nicht in der Oberflächenform — beurteile, ob eine Aussage/Frage dem Kunden wirklich Raum gibt oder ihn in eine Richtung drängt.`;
 
 export async function POST(request: Request) {
   const body = await request.json();
