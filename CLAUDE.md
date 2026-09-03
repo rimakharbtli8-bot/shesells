@@ -101,6 +101,47 @@ Siegel, abstraktes Zwei-Kreise-Symbol, Gilden-Ringsiegel, Torbogen-Symbol,
 geschwungene Aufstiegs-Linie. Nächster Schritt: finales Schlüssel-Symbol
 zusammen mit Wordmark zu einem sauberen Lockup ausarbeiten.
 
+## Geschäftsmodell-Erweiterung: Academy + Placement-Marktplatz (geplant, noch nicht gebaut)
+
+Zusätzlich zum Kurs/Training soll es eine zweite, wiederkehrende
+Einnahmequelle geben: ein privates Portal, auf dem Portfolios der besten
+Sales-Studentinnen für Coaches/Unternehmen sichtbar sind, die eine
+Closerin suchen — Provision auf die Vermittlung, nicht nur einmalige
+Kursgebühr.
+
+**Warum das strukturell stark ist:** zwei Einnahmequellen (Kurs +
+laufende Vermittlungsprovision) statt nur einer; bessere Anreize als bei
+reinen Kursverkäufern, weil der Erfolg der Studentinnen direkt den
+eigenen Umsatz beeinflusst; liefert einen objektiven Beweis, dass die
+Trainingsmethode wirklich funktioniert (echte Vermittlungen statt nur
+Behauptungen) — zahlt direkt auf das "Beweise vor Behauptungen"-Prinzip
+oben ein.
+
+**Rechtliche Einordnung:** die meisten Remote-Closing-Rollen sind
+selbstständige, provisionsbasierte Zusammenarbeit (kein Anstellungs-
+verhältnis) — das läuft eher als Marktplatz-/Vermittlungsprovision
+(ähnlich Upwork, Maklerrecht §652 BGB als Rahmen) statt als klassische
+Arbeitsvermittlung nach SGB III. Vor echtem Geldfluss trotzdem kurz
+anwaltlich absichern (Provisionsvereinbarung, AGB der Plattform).
+
+**Risiken, im Blick behalten:** Qualitätskontrolle ist entscheidend (eine
+schlechte Vermittlung beschädigt die eigene Marke mehr als die einzelne
+Studentin); Henne-Ei-Problem zwischen Coach-Nachfrage und Closerinnen-
+Angebot; Provisionshöhe von Anfang an transparent gegenüber beiden
+Seiten kommunizieren.
+
+**Empfohlene Reihenfolge:**
+1. Jetzt: Netzwerk aufbauen, erste 5-10 Personen trainieren, echte
+   Ergebnisse/Case-Studies sammeln
+2. Kurs launchen, basierend auf diesen echten Case Studies
+3. Portal NICHT zuerst als eigene Software bauen — als einfache
+   kuratierte Liste starten (Notion/Airtable), persönlich an 3-5
+   bekannte Coaches vermitteln, bevor überhaupt Software gebaut wird
+4. Erst wenn nachweislich echte Vermittlungen/Provisionen zustande
+   kommen, lohnt sich ein richtiges Portal — perspektivisch direkt in
+   die bestehende CLOSER-App integrierbar ("trainiert in der App →
+   Profil im Portal"), da die Trainings-Infrastruktur schon existiert.
+
 ## Wie diese Datei genutzt werden soll
 
 Bei zukünftigen Sessions: diese Positionierung als gesetzt behandeln, nicht
