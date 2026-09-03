@@ -27,6 +27,16 @@ export function useCallTts() {
   // voice and the browser fallback mid-conversation is more jarring than
   // just staying on one consistent (even if lesser) voice throughout.
   const providerDownRef = useRef(false);
+  // A single local playback failure (autoplay policy on a non-gesture
+  // play() call, a codec hiccup) shouldn't lock out a working ElevenLabs
+  // connection for the whole call — but if it keeps happening turn after
+  // turn, retrying every time IS the audible flip-flopping this hook exists
+  // to avoid. Two in a row (not necessarily consecutive turns, since a
+  // success resets it) is treated as "this isn't a one-off" and locks to
+  // the browser voice for the rest of the call, same as a real provider
+  // failure would.
+  const localFailureStreakRef = useRef(0);
+  const LOCAL_FAILURE_LIMIT = 2;
   const browserTtsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
   useEffect(() => {
@@ -118,31 +128,38 @@ export function useCallTts() {
 
       // We got real audio back from ElevenLabs — a failure from here on is
       // a LOCAL playback problem (autoplay policy blocking a non-gesture
-      // play() call, a codec hiccup), not the provider's fault. Don't mark
-      // the provider down for that: it would permanently silence a working
-      // ElevenLabs voice for the rest of the call over a one-off local
-      // glitch. Just play this one line via the browser voice and let the
-      // next line try the real provider again.
+      // play() call, a codec hiccup), not the provider's fault. A single
+      // one of these shouldn't permanently silence a working ElevenLabs
+      // voice, but a repeat means it isn't a one-off — see
+      // localFailureStreakRef above.
       const url = URL.createObjectURL(blob);
       objectUrlRef.current = url;
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onplay = () => setIsSpeaking(true);
       audio.onended = () => {
+        localFailureStreakRef.current = 0;
         setIsSpeaking(false);
         cleanupAudio();
         onEnd?.();
       };
+      const onLocalPlaybackFailure = () => {
+        localFailureStreakRef.current += 1;
+        if (localFailureStreakRef.current >= LOCAL_FAILURE_LIMIT) {
+          providerDownRef.current = true;
+        }
+        speakWithBrowser(text, gender, onEnd);
+      };
       audio.onerror = () => {
         setIsSpeaking(false);
         cleanupAudio();
-        speakWithBrowser(text, gender, onEnd);
+        onLocalPlaybackFailure();
       };
       try {
         await audio.play();
       } catch {
         cleanupAudio();
-        speakWithBrowser(text, gender, onEnd);
+        onLocalPlaybackFailure();
       }
     },
     [cleanupAudio, speakWithBrowser],
